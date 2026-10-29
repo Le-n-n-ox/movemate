@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     max_segments_per_image: int = 20
     min_missing_confidence: float = 0.7
     min_misplaced_confidence: float = 0.6
+    audit_mode: str = "normal"  # "normal" or "direct" (skip frame labeling, use evenly spread frames)
 
 
 settings = Settings()

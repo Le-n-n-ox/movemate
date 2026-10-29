@@ -1,3 +1,5 @@
+import hashlib
+
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -8,13 +10,27 @@ from ..services.models import get_client
 from .matching import area, dedupe
 
 
+_label_cache: dict[str, object] = {}
+
+
+def _crop_hash(crop: bytes) -> str:
+    return hashlib.md5(crop).hexdigest()
+
+
+def _cached_label(client, crop: bytes):
+    key = _crop_hash(crop)
+    if key not in _label_cache:
+        _label_cache[key] = client.label(crop)
+    return _label_cache[key]
+
+
 def _objects_in_image(client, img: bytes, frame_no: int) -> list[dict]:
     segs = [s for s in client.segment(img) if area(s.bbox) > 0.002]
     segs = sorted(segs, key=lambda s: s.score, reverse=True)[: settings.max_segments_per_image]
     objs = []
     for s in segs:
         crop = imaging.crop_bbox(img, s.bbox)
-        lab = client.label(crop)
+        lab = _cached_label(client, crop)
         objs.append({"label": lab.label, "category": lab.category, "conf": lab.confidence,
                      "bbox": s.bbox, "frame": frame_no, "crop": crop, "image": img})
     return objs

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import Item, Property, Room
 from ..pipeline import guest
 from ..schemas import GuestAnswer, GuestGuide, GuestProperty
+from ..services.rate_limit import guest_rate_limiter
 from .common import MAX_IMAGE, read_upload
 
 router = APIRouter(tags=["guest"])
@@ -26,7 +27,10 @@ def guest_property(token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/guest/{token}/ask", response_model=GuestAnswer)
-async def guest_ask(token: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def guest_ask(token: str, request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    # Rate limit: 10 requests per hour per IP
+    guest_rate_limiter.check(request)
+    
     p = _property_by_token(db, token)
     raw = await read_upload(file, MAX_IMAGE)
     item, img, guess = guest.identify(db, p, raw)

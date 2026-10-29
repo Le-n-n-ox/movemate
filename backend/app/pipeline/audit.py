@@ -52,8 +52,13 @@ def run_audit(audit_id: str) -> None:
 
         rooms: dict[str, RoomFrames] = {}
         for rid, rels in rels_by_room.items():
-            rooms[rid] = RoomFrames(db.get(Room, rid).name, [storage.read_bytes(r) for r in rels],
-                                    lambda frames, c=client: _observe(c, frames))
+            if settings.audit_mode == "direct":
+                # Direct mode: skip frame labeling, use evenly spread frames
+                rooms[rid] = RoomFrames(db.get(Room, rid).name, [storage.read_bytes(r) for r in rels],
+                                        lambda frames, c=client: [[] for _ in frames])
+            else:
+                rooms[rid] = RoomFrames(db.get(Room, rid).name, [storage.read_bytes(r) for r in rels],
+                                        lambda frames, c=client: _observe(c, frames))
 
         checked, findings = 0, []
         for rid, rf in rooms.items():

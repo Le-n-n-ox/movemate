@@ -16,6 +16,8 @@ class Label:
     label: str
     category: str | None = None
     confidence: float = 0.8
+    brand: str | None = None  # Extracted brand name if visible
+    model: str | None = None  # Extracted model name if visible
 
 
 @dataclass
@@ -39,7 +41,7 @@ class Judgement:
 
 
 class VisionClient(Protocol):
-    def segment(self, image: bytes) -> list[Segment]: ...
+    def segment(self, image: bytes, height: int = None, width: int = None) -> list[Segment]: ...
 
     def label(self, crop: bytes) -> Label: ...
 

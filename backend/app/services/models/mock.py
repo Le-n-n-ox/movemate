@@ -13,12 +13,12 @@ import hashlib
 from .base import Guide, Judgement, Label, Segment
 
 NAMES = [
-    ("Nespresso Vertuo Plus", "appliance"),
-    ("Samsung TV remote", "remote"),
-    ("Wine glass set", "glassware"),
-    ("Smart speaker", "electronics"),
-    ("Ceramic table lamp", "decor"),
-    ("Wi-Fi router", "electronics"),
+    ("Nespresso Vertuo Plus", "appliance", "Nespresso", "Vertuo Plus"),
+    ("Samsung TV remote", "remote", "Samsung", None),
+    ("Wine glass set", "glassware", None, None),
+    ("Smart speaker", "electronics", None, None),
+    ("Ceramic table lamp", "decor", None, None),
+    ("Wi-Fi router", "electronics", None, None),
 ]
 
 
@@ -35,8 +35,8 @@ class MockClient:
         ]
 
     def label(self, crop: bytes) -> Label:
-        name, cat = NAMES[_h(crop) % len(NAMES)]
-        return Label(label=name, category=cat, confidence=0.82)
+        name, cat, brand, model = NAMES[_h(crop) % len(NAMES)]
+        return Label(label=name, category=cat, confidence=0.82, brand=brand, model=model)
 
     def choose_candidate(self, image: bytes, candidates: list[str]) -> tuple[int, float]:
         if not candidates:

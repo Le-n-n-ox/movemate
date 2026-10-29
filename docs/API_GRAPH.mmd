@@ -1,0 +1,159 @@
+graph LR
+    classDef backend fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef frontend fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef prefix fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+
+    %% Frontend API entry points
+    F_health["health"]:::frontend
+    F_seed["seed"]:::frontend
+    F_listProperties["listProperties"]:::frontend
+    F_createProperty["createProperty"]:::frontend
+    F_getProperty["getProperty"]:::frontend
+    F_patchProperty["patchProperty"]:::frontend
+    F_createRoom["createRoom"]:::frontend
+    F_getRoom["getRoom"]:::frontend
+    F_patchRoom["patchRoom"]:::frontend
+    F_listLocations["listLocations"]:::frontend
+    F_roomPhoto["roomPhoto"]:::frontend
+    F_baselinePhoto["baselinePhoto"]:::frontend
+    F_baselineVideo["baselineVideo"]:::frontend
+    F_listItems["listItems"]:::frontend
+    F_patchItem["patchItem"]:::frontend
+    F_deleteItem["deleteItem"]:::frontend
+    F_createItem["createItem"]:::frontend
+    F_setCondition["setCondition"]:::frontend
+    F_itemHistory["itemHistory"]:::frontend
+    F_confirmAll["confirmAll"]:::frontend
+    F_guestProperty["guestProperty"]:::frontend
+    F_guestAsk["guestAsk"]:::frontend
+    F_createAudit["createAudit"]:::frontend
+    F_uploadAuditVideo["uploadAuditVideo"]:::frontend
+    F_uploadAuditFrames["uploadAuditFrames"]:::frontend
+    F_runAudit["runAudit"]:::frontend
+    F_getAudit["getAudit"]:::frontend
+    F_createInspection["createInspection"]:::frontend
+    F_listInspections["listInspections"]:::frontend
+    F_getInspection["getInspection"]:::frontend
+    F_patchInspectionItem["patchInspectionItem"]:::frontend
+    F_inspectionItemPhoto["inspectionItemPhoto"]:::frontend
+    F_patchCleaningCheck["patchCleaningCheck"]:::frontend
+    F_importAiSuggestions["importAiSuggestions"]:::frontend
+    F_completeInspection["completeInspection"]:::frontend
+    F_readiness["readiness"]:::frontend
+    F_listCases["listCases"]:::frontend
+    F_getCase["getCase"]:::frontend
+    F_patchCase["patchCase"]:::frontend
+    F_addCaseEvent["addCaseEvent"]:::frontend
+    F_resolveCase["resolveCase"]:::frontend
+    F_patchFinding["patchFinding"]:::frontend
+
+    %% Backend routes (unique id per method + path)
+    B_POST__api_properties_property_id_audits["POST /api/properties/{property_id}/audits"]:::backend
+    B_POST__api_audits_audit_id_rooms_room_id_video["POST /api/audits/{audit_id}/rooms/{room_id}/video"]:::backend
+    B_POST__api_audits_audit_id_rooms_room_id_frames["POST /api/audits/{audit_id}/rooms/{room_id}/frames"]:::backend
+    B_POST__api_audits_audit_id_run["POST /api/audits/{audit_id}/run"]:::backend
+    B_GET__api_audits_audit_id["GET /api/audits/{audit_id}"]:::backend
+    B_PATCH__api_findings_finding_id["PATCH /api/findings/{finding_id}"]:::backend
+    B_POST__api_rooms_room_id_baseline_photo["POST /api/rooms/{room_id}/baseline/photo"]:::backend
+    B_POST__api_rooms_room_id_baseline_video["POST /api/rooms/{room_id}/baseline/video"]:::backend
+    B_POST__api_seed["POST /api/seed"]:::backend
+    B_GET__api_properties_property_id_discrepancies["GET /api/properties/{property_id}/discrepancies"]:::backend
+    B_GET__api_discrepancies_case_id["GET /api/discrepancies/{case_id}"]:::backend
+    B_PATCH__api_discrepancies_case_id["PATCH /api/discrepancies/{case_id}"]:::backend
+    B_POST__api_discrepancies_case_id_events["POST /api/discrepancies/{case_id}/events"]:::backend
+    B_POST__api_discrepancies_case_id_resolve["POST /api/discrepancies/{case_id}/resolve"]:::backend
+    B_GET__api_guest_token["GET /api/guest/{token}"]:::backend
+    B_POST__api_guest_token_ask["POST /api/guest/{token}/ask"]:::backend
+    B_POST__api_properties_property_id_inspections["POST /api/properties/{property_id}/inspections"]:::backend
+    B_GET__api_properties_property_id_inspections["GET /api/properties/{property_id}/inspections"]:::backend
+    B_GET__api_inspections_inspection_id["GET /api/inspections/{inspection_id}"]:::backend
+    B_PATCH__api_inspection_items_ii_id["PATCH /api/inspection-items/{ii_id}"]:::backend
+    B_POST__api_inspection_items_ii_id_photo["POST /api/inspection-items/{ii_id}/photo"]:::backend
+    B_PATCH__api_cleaning_checks_check_id["PATCH /api/cleaning-checks/{check_id}"]:::backend
+    B_POST__api_inspections_inspection_id_ai_suggestions["POST /api/inspections/{inspection_id}/ai-suggestions"]:::backend
+    B_POST__api_inspections_inspection_id_complete["POST /api/inspections/{inspection_id}/complete"]:::backend
+    B_GET__api_inspections_inspection_id_readiness["GET /api/inspections/{inspection_id}/readiness"]:::backend
+    B_GET__api_rooms_room_id_items["GET /api/rooms/{room_id}/items"]:::backend
+    B_POST__api_rooms_room_id_items["POST /api/rooms/{room_id}/items"]:::backend
+    B_PATCH__api_items_item_id["PATCH /api/items/{item_id}"]:::backend
+    B_DELETE__api_items_item_id["DELETE /api/items/{item_id}"]:::backend
+    B_POST__api_rooms_room_id_items_confirm_all["POST /api/rooms/{room_id}/items/confirm-all"]:::backend
+    B_POST__api_items_item_id_condition["POST /api/items/{item_id}/condition"]:::backend
+    B_GET__api_items_item_id_history["GET /api/items/{item_id}/history"]:::backend
+    B_GET__health["GET /health"]:::backend
+    B_GET__models["GET /models"]:::backend
+    B_GET__v1_models["GET /v1/models"]:::backend
+    B_POST__api_properties["POST /api/properties"]:::backend
+    B_GET__api_properties["GET /api/properties"]:::backend
+    B_GET__api_properties_property_id["GET /api/properties/{property_id}"]:::backend
+    B_PATCH__api_properties_property_id["PATCH /api/properties/{property_id}"]:::backend
+    B_POST__api_properties_property_id_rooms["POST /api/properties/{property_id}/rooms"]:::backend
+    B_GET__api_properties_property_id_rooms["GET /api/properties/{property_id}/rooms"]:::backend
+    B_GET__api_rooms_room_id["GET /api/rooms/{room_id}"]:::backend
+    B_PATCH__api_rooms_room_id["PATCH /api/rooms/{room_id}"]:::backend
+    B_GET__api_rooms_room_id_locations["GET /api/rooms/{room_id}/locations"]:::backend
+    B_POST__api_rooms_room_id_photo["POST /api/rooms/{room_id}/photo"]:::backend
+    B_GET__api_rooms_room_id_sheet["GET /api/rooms/{room_id}/sheet"]:::backend
+
+    %% Prefix mounts
+    API_PREFIX["/api"]:::prefix
+    ROOT["(root)"]:::prefix
+
+    F_createAudit -->|req()| B_POST__api_properties_property_id_audits
+    F_uploadAuditVideo -->|req()| B_POST__api_audits_audit_id_rooms_room_id_video
+    F_uploadAuditFrames -->|req()| B_POST__api_audits_audit_id_rooms_room_id_frames
+    F_runAudit -->|req()| B_POST__api_audits_audit_id_run
+    F_getAudit -->|req()| B_GET__api_audits_audit_id
+    F_patchFinding -->|req()| B_PATCH__api_findings_finding_id
+    F_baselinePhoto -->|req()| B_POST__api_rooms_room_id_baseline_photo
+    F_baselineVideo -->|req()| B_POST__api_rooms_room_id_baseline_video
+    F_getCase -->|req()| B_GET__api_discrepancies_case_id
+    F_patchCase -->|req()| B_GET__api_discrepancies_case_id
+    F_getCase -->|req()| B_PATCH__api_discrepancies_case_id
+    F_patchCase -->|req()| B_PATCH__api_discrepancies_case_id
+    F_addCaseEvent -->|req()| B_POST__api_discrepancies_case_id_events
+    F_resolveCase -->|req()| B_POST__api_discrepancies_case_id_resolve
+    F_guestProperty -->|req()| B_GET__api_guest_token
+    F_guestAsk -->|req()| B_POST__api_guest_token_ask
+    F_createInspection -->|req()| B_POST__api_properties_property_id_inspections
+    F_listInspections -->|req()| B_POST__api_properties_property_id_inspections
+    F_createInspection -->|req()| B_GET__api_properties_property_id_inspections
+    F_listInspections -->|req()| B_GET__api_properties_property_id_inspections
+    F_getInspection -->|req()| B_GET__api_inspections_inspection_id
+    F_patchInspectionItem -->|req()| B_PATCH__api_inspection_items_ii_id
+    F_inspectionItemPhoto -->|req()| B_POST__api_inspection_items_ii_id_photo
+    F_patchCleaningCheck -->|req()| B_PATCH__api_cleaning_checks_check_id
+    F_importAiSuggestions -->|req()| B_POST__api_inspections_inspection_id_ai_suggestions
+    F_completeInspection -->|req()| B_POST__api_inspections_inspection_id_complete
+    F_readiness -->|req()| B_GET__api_inspections_inspection_id_readiness
+    F_createItem -->|req()| B_GET__api_rooms_room_id_items
+    F_createItem -->|req()| B_POST__api_rooms_room_id_items
+    F_patchItem -->|req()| B_PATCH__api_items_item_id
+    F_deleteItem -->|req()| B_PATCH__api_items_item_id
+    F_patchItem -->|req()| B_DELETE__api_items_item_id
+    F_deleteItem -->|req()| B_DELETE__api_items_item_id
+    F_confirmAll -->|req()| B_POST__api_rooms_room_id_items_confirm_all
+    F_setCondition -->|req()| B_POST__api_items_item_id_condition
+    F_itemHistory -->|req()| B_GET__api_items_item_id_history
+    ROOT -->|direct| B_GET__health
+    ROOT -->|direct| B_GET__models
+    ROOT -->|direct| B_GET__v1_models
+    F_listProperties -->|req()| B_POST__api_properties
+    F_createProperty -->|req()| B_POST__api_properties
+    F_listProperties -->|req()| B_GET__api_properties
+    F_createProperty -->|req()| B_GET__api_properties
+    F_getProperty -->|req()| B_GET__api_properties_property_id
+    F_patchProperty -->|req()| B_GET__api_properties_property_id
+    F_getProperty -->|req()| B_PATCH__api_properties_property_id
+    F_patchProperty -->|req()| B_PATCH__api_properties_property_id
+    F_createRoom -->|req()| B_POST__api_properties_property_id_rooms
+    F_createRoom -->|req()| B_GET__api_properties_property_id_rooms
+    F_getRoom -->|req()| B_GET__api_rooms_room_id
+    F_patchRoom -->|req()| B_GET__api_rooms_room_id
+    F_getRoom -->|req()| B_PATCH__api_rooms_room_id
+    F_patchRoom -->|req()| B_PATCH__api_rooms_room_id
+    F_listLocations -->|req()| B_GET__api_rooms_room_id_locations
+    F_roomPhoto -->|req()| B_POST__api_rooms_room_id_photo
+    API_PREFIX -->|mounts| B_POST__api_seed
+    API_PREFIX -->|mounts| B_GET__api_properties_property_id_discrepancies
+    API_PREFIX -->|mounts| B_GET__api_rooms_room_id_sheet
