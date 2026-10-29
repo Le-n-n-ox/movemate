@@ -22,9 +22,11 @@ npm-debug.log*
 data/*
 !data/.gitkeep
 
+# sqlite databases
+*.db
+
 # os / editor
 .DS_Store
 .idea/
 .vscode/
 *.log
-test.db
