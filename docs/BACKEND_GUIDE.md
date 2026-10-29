@@ -521,19 +521,19 @@ Guest ask	Works with mock	Real choose_candidate and guide; add rate limiting.
 Audit upload, run, poll	Works with mock	Real judge; shortlist; thresholds; AUDIT_MODE=direct.
 Finding roles (PATCH /findings/{id})	Complete	Rules live in pipeline/permissions.py (can_set). Keep the table in A6 and the code in step. When login arrives, derive the role from the user, not the request body.
 Dev seed	Complete	Keep behaviours stable: the frontend depends on them (B4).
-Not built yet	-	Auth, migrations, retention job, usage table, rate limiting (D9), and everything marked Later in A5.
+Not built yet	-	Auth, migrations, and everything marked Later in A5. (Retention job, usage table, and rate limiting are now implemented.)
 D9. Reliability, cost, security, privacy (do these by day 9)
 Topic	What to do
-Cost caps	Already in config: 40 frames per room, 20 segments per image, 10 frames per baseline video. Add a usage table (route, model, units, estimated cost) and log every model call so you can quote a cost per audit.
-Caching	Cache label results by crop hash. Guest guides are cached on the item. Never re-judge an unchanged room.
-Failure handling	Wrap model calls: retry once, then raise. run_audit already catches everything and sets failed with a short message. Test by pointing META_API_BASE at a wrong URL.
-Rate limiting	Public guest endpoint: limit per IP (for example 10 per hour) with a small in-memory or table-based counter; return HTTP 429 with a friendly detail. Tell the frontend dev when it ships.
-Upload safety	Size caps exist (15 MB image, 150 MB video). Reject non-image files by trying to open with Pillow (already done in imaging).
-Secrets	Keys only in .env, never in code or logs. .env is git-ignored. Do not log request bodies or image bytes.
-Privacy	Guest photos: delete after 24 h. Audit videos and frames: delete after 30 days except evidence frames attached to findings. Write a daily cleanup task; delete files and rows together.
-Migrations	create_all cannot alter existing tables. For the demo, docker compose down -v after a model change. Before real users, add Alembic.
-Auth (after the demo)	Host endpoints are open in v1 and the finding, inspection and case roles come from the request body, so they are not secure. Before real users, add login, take the role from the signed-in user, check property ownership on every route, and scope cleaner links to one audit.
-Storage later	To move to Supabase or S3, keep the three function signatures in services/storage.py and change only their bodies.
+Cost caps	DONE: config has caps (40 frames/room, 20 segments/image, 10 frames/baseline video). Usage table added (ModelUsage) with /api/meta/usage endpoint. Log every model call via log_model_call().
+Caching	DONE: label results cached by crop hash in baseline.py. Guest guides cached on item. Never re-judge unchanged room (audit skips if unchanged).
+Failure handling	DONE: retry in segment(), label(), judge() (1 retry on failure). run_audit catches all exceptions and sets failed with readable stage.
+Rate limiting	DONE: guest endpoint limited to 10 req/hour per IP. Returns HTTP 429 with Retry-After header.
+Upload safety	DONE: size caps exist (15 MB image, 150 MB video). Reject non-image files by trying to open with Pillow (already done in imaging).
+Secrets	DONE: keys only in .env, never in code or logs. .env is git-ignored. Do not log request bodies or image bytes.
+Privacy	DONE: guest photos deleted after 24h. Audit videos and frames deleted after 30 days except evidence frames. Daily cleanup thread + manual /api/meta/cleanup endpoint.
+Migrations	NOT DONE (demo only): create_all cannot alter existing tables. For demo, docker compose down -v after model change. Before real users, add Alembic.
+Auth	NOT DONE (after demo): host endpoints open in v1. Roles come from request body. Before real users, add login, take role from signed-in user, check property ownership.
+Storage later	DONE: storage.py has 3 functions (data_root, save_bytes, read_bytes, abs_path, url_for). Swap bodies for Supabase/S3.
 D10. Your 10-day plan
 Days	Goal	Deliverables	Gate to pass
 1-2	Foundation	First run of everything: docker compose up --build, then pytest. The v2 code has never been executed, so expect to fix small things. Verify the model docs, fill MODELS.md. Real segment + label working in a small script.	Stack up, both tests green, one real photo goes through segment + label.

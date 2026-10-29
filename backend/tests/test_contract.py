@@ -1,6 +1,11 @@
 """Contract tests: verify all endpoints from Part B of the backend guide exist in openapi.json."""
-import json
-import urllib.request
+import os
+import tempfile
+
+os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+os.environ["DATA_DIR"] = tempfile.mkdtemp()
+os.environ["MOCK_MODELS"] = "true"
+os.environ["APP_ENV"] = "dev"
 
 import pytest
 from fastapi.testclient import TestClient
