@@ -165,7 +165,7 @@ IDs and times	All ids are strings (UUIDs). Timestamps are ISO 8601 strings.
 Media URLs	Every *_url field is an absolute URL, ready for an img src. The frontend never builds media URLs.
 Boxes	Normalized 0..1 {x, y, w, h}. Multiply by the displayed image size to draw.
 Uploads	multipart/form-data. Field is 'file' for one file and 'files' for several. Images max 15 MB, videos max 150 MB.
-Errors	Non-2xx responses carry JSON {"detail": "human readable message"}. 400 bad input, 404 not found, 409 audit already running or action not allowed in the current state (inspection completed, case resolved, checks pending), 413 file too large, 422 unreadable video.
+Errors	Non-2xx responses carry JSON {"detail": "human readable message"}. 400 bad input, 404 not found, 409 audit already running or action not allowed in the current state (inspection completed, case resolved, checks pending), 413 file too large, 422 unreadable video, 429 rate limit exceeded (guest endpoint: 10 requests/hour per IP).
 Long work	Audits run in the background. POST /run returns 202 at once. Poll GET /audits/{id} every 2 seconds until status is done or failed. The 'stage' text is shown to the user.
 Auth	None in v1 (hackathon). Guest access is by the unguessable guest_token. Add host auth after the demo.
 Item lifecycle	New scan items are 'suggested'. Only 'confirmed' items are used for guest answers, audits and inspections. Guests never see staff_only items.
@@ -227,6 +227,8 @@ PATCH	/api/discrepancies/{id}	JSON {role, actor, status?, assigned_to?, blocks_r
 POST	/api/discrepancies/{id}/events	multipart: role, actor, kind, text?, file?	DiscrepancyEventOut	Case page
 POST	/api/discrepancies/{id}/resolve	JSON {role, actor, outcome, note?}	DiscrepancyOut	Case page
 GET	/media/{path}	-	image bytes	all pages (img src)
+GET	/api/meta/usage	-	{period_hours, total_cost, by_model, by_route}	Dev/admin (cost tracking)
+POST	/api/meta/cleanup	-	{status, guest_photos_deleted, audit_videos_deleted, audit_frames_deleted}	Dev/admin (retention)
 B3. Data shapes
 Name	Shape
 BBox	{ x, y, w, h } numbers 0..1, relative to the image width and height (top-left origin)

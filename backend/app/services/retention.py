@@ -85,11 +85,9 @@ def cleanup_audit_frames(db: Session, max_age_days: float = 30.0) -> int:
     findings = db.query(Finding).all()
     evidence_paths = set()
     for f in findings:
-        if f.evidence_frame_url:
-            # Extract path from URL
-            path = f.evidence_frame_url.split("/media/")[-1] if "/media/" in f.evidence_frame_url else None
-            if path:
-                evidence_paths.add(path)
+        if f.evidence_frame_path:
+            # The evidence_frame_path is a relative path, not a URL
+            evidence_paths.add(f.evidence_frame_path)
     
     deleted = 0
     captures = db.query(Capture).filter(Capture.kind == "audit_frames").all()

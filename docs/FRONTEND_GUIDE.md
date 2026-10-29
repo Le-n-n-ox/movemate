@@ -165,7 +165,7 @@ IDs and times	All ids are strings (UUIDs). Timestamps are ISO 8601 strings.
 Media URLs	Every *_url field is an absolute URL, ready for an img src. The frontend never builds media URLs.
 Boxes	Normalized 0..1 {x, y, w, h}. Multiply by the displayed image size to draw.
 Uploads	multipart/form-data. Field is 'file' for one file and 'files' for several. Images max 15 MB, videos max 150 MB.
-Errors	Non-2xx responses carry JSON {"detail": "human readable message"}. 400 bad input, 404 not found, 409 audit already running or action not allowed in the current state (inspection completed, case resolved, checks pending), 413 file too large, 422 unreadable video.
+Errors	Non-2xx responses carry JSON {"detail": "human readable message"}. 400 bad input, 404 not found, 409 audit already running or action not allowed in the current state (inspection completed, case resolved, checks pending), 413 file too large, 422 unreadable video, 429 rate limit exceeded (guest endpoint: 10 requests/hour per IP).
 Long work	Audits run in the background. POST /run returns 202 at once. Poll GET /audits/{id} every 2 seconds until status is done or failed. The 'stage' text is shown to the user.
 Auth	None in v1 (hackathon). Guest access is by the unguessable guest_token. Add host auth after the demo.
 Item lifecycle	New scan items are 'suggested'. Only 'confirmed' items are used for guest answers, audits and inspections. Guests never see staff_only items.
@@ -227,6 +227,8 @@ PATCH	/api/discrepancies/{id}	JSON {role, actor, status?, assigned_to?, blocks_r
 POST	/api/discrepancies/{id}/events	multipart: role, actor, kind, text?, file?	DiscrepancyEventOut	Case page
 POST	/api/discrepancies/{id}/resolve	JSON {role, actor, outcome, note?}	DiscrepancyOut	Case page
 GET	/media/{path}	-	image bytes	all pages (img src)
+GET	/api/meta/usage	-	{period_hours, total_cost, by_model, by_route}	Dev/admin (cost tracking)
+POST	/api/meta/cleanup	-	{status, guest_photos_deleted, audit_videos_deleted, audit_frames_deleted}	Dev/admin (retention)
 B3. Data shapes
 Name	Shape
 BBox	{ x, y, w, h } numbers 0..1, relative to the image width and height (top-left origin)
@@ -453,7 +455,7 @@ Done when	A guest with a link can photograph the seeded coffee machine and read 
 D5. Capture and upload rules
 Use the native camera input (<input type=file accept=... capture=environment>). It opens the phone camera on iOS and Android with no permission code. FilePicker.tsx already does this. Do not switch to getUserMedia unless you finish everything else.
 Send the video file as is to POST /audits/{id}/rooms/{room}/video. The backend cuts frames. You do not need ffmpeg in the browser. (/frames exists as a fallback only.)
-Limits: images 15 MB, videos 150 MB. Show a clear message on HTTP 413 ('Please record a shorter video'). On 422 say 'We could not read that video, please try again'.
+Limits: images 15 MB, videos 150 MB. Show a clear message on HTTP 413 ('Please record a shorter video'). On 422 say 'We could not read that video, please try again'. On 429 (guest endpoint rate limit) say 'Too many requests, try again later'.
 Phones often record HEVC .mov. That is fine, the backend handles it. Do not convert in the browser.
 Always show the file name or a thumbnail after upload so the user trusts that it worked.
 Use URL.createObjectURL(file) for instant previews before the server answers.
@@ -466,6 +468,7 @@ Errors: api.ts already throws Error(detail). Catch it, show it in an ErrorNote, 
 Boxes are 0..1 fractions of the image: position them with percentages (see BBoxOverlay.tsx), so they stay right at any screen size.
 Polling: use usePolling and stop on done or failed. Do not poll faster than every 2 seconds.
 Do not store secrets or API keys in the frontend. There are none. Only NEXT_PUBLIC_API_URL is configured.
+Backend config: AUDIT_MODE=normal (default) uses frame labeling for shortlisting. Set AUDIT_MODE=direct to skip labeling and use evenly spread frames (cheaper, fewer moving parts, safety net if segmentation misbehaves).
 D7. Design rules
 Rule	Detail
 Phone first	Design at 375 px width. Check 360 and 414. Desktop is a bonus: centered column, max width 672 px.
