@@ -1,0 +1,30 @@
+# env and secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# node
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# runtime data (uploads, frames, crops)
+data/*
+!data/.gitkeep
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+*.log
+test.db
