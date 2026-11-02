@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="MoveMate Host Edition API", version="2.0", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=[settings.frontend_origin, "http://127.0.0.1:3000"],
+app.add_middleware(CORSMiddleware, allow_origins=[settings.frontend_origin, "http://127.0.0.1:3000", "http://localhost:3000"],
                    allow_methods=["*"], allow_headers=["*"])
 
 api = APIRouter(prefix="/api")
