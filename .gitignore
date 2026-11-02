@@ -37,3 +37,5 @@ data/*
 .vscode/
 *.log
 backend/data
+backend/accuracy/videos/*
+!backend/accuracy/videos/.gitkeep

@@ -233,15 +233,16 @@ class MetaClient:
                     return val
             raise ValueError(f"Could not extract text from response: {data}")
 
-    def _judge_with_retry(self, images: list[bytes], prompt: str, max_retries: int = 1) -> str:
-        """Call judge model with retry on bad JSON."""
+    def _judge_with_retry(self, images: list[bytes], prompt: str, max_retries: int = 1) -> dict:
+        """Call the judge and retry once when the response is invalid JSON."""
         for attempt in range(max_retries + 1):
             try:
                 if settings.vision_llm_url:
-                    return self._call_vision_llm(images, prompt)
+                    text = self._call_vision_llm(images, prompt)
                 else:
-                    return self._chat(settings.meta_reason_model, images, prompt)
-            except Exception as e:
+                    text = self._chat(settings.meta_reason_model, images, prompt)
+                return _parse_json(text)
+            except (httpx.HTTPError, ValueError):
                 if attempt == max_retries:
                     raise
                 # Retry with tighter prompt
@@ -259,8 +260,7 @@ class MetaClient:
             scope_line=SCOPE_OTHER if scope == "other_rooms" else SCOPE_ROOM,
             context_line="Image 2 is a wide photo showing where the item normally sits.\n" if context_image else "")
 
-        text = self._judge_with_retry(images, prompt)
-        d = _parse_json(text)
+        d = self._judge_with_retry(images, prompt)
 
         # Validate required fields
         status = d.get("status", "not_visible")

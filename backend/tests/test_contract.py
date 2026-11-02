@@ -6,6 +6,7 @@ os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 os.environ["DATA_DIR"] = tempfile.mkdtemp()
 os.environ["MOCK_MODELS"] = "true"
 os.environ["APP_ENV"] = "dev"
+os.environ["AUTO_CREATE_SCHEMA"] = "true"
 
 import pytest
 from fastapi.testclient import TestClient

@@ -24,7 +24,7 @@ from app.services import usage  # noqa: F401  ensure ModelUsage is registered
 target_metadata = Base.metadata
 
 # Override the sqlalchemy.url from settings (reads from .env)
-config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

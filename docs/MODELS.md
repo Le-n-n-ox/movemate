@@ -1,103 +1,77 @@
-# MODELS.md (backend owner fills this in on day 1)
+# Model client: implementation and verification status
 
-Verify each model against the hackathon docs before writing real calls in `backend/app/services/models/meta.py`.
+The provider adapters are implemented in `backend/app/services/models/meta.py`. Automated tests exercise request construction, response parsing, image encoding, judge retries, and the multi-image judge payload using mocked HTTP responses. These tests verify our client contract; they do **not** prove that a live provider accepts the configured model names, payloads, limits, or credentials.
 
 ## Configuration
 
-- **API base URL**: `https://api.meta.ai/v1`
-- **Auth**: `Authorization: Bearer <META_API_KEY>`
-- **Endpoint**: `POST /responses` (appended to `meta_api_base` which already includes `/v1`)
-- **Image format**: `data:image/jpeg;base64,... <prompt text>` as a single string in `input`
-- **Response envelope**: `{"output": [{"type": "reasoning", "summary": [{"type": "summary_text", "text": "..."}]}]}`
-- **Model names**: `muse-image-1.0`, `muse-spark-1.3`, `sam-3.1`, `muse-wonder-1.0`
+- `META_API_BASE` and `META_API_KEY` configure the Meta-compatible `/responses` client.
+- `META_SEGMENT_MODEL`, `META_LABEL_MODEL`, and `META_REASON_MODEL` select the models. Current code defaults are `sam-3.1`, `muse-image`, and `muse-spark`; confirm the account's actual model IDs before live use.
+- `VISION_LLM_URL` optionally selects the separate image-array judge endpoint; `VISION_LLM_KEY` is sent as an `Api-Key` authorization header.
+- Keep provider credentials in `.env`; do not commit them or print them in test output.
 
 | Model | Used for | Input | Video input? | Output shape | Rate limit | Notes |
 |---|---|---|---|---|---|---|
-| SAM 3.1 | find object regions | base64 image | No | List of {bbox: [x,y,w,h], score, polygon} in pixels | | Boxes returned in pixels, normalized to 0..1 |
-| Muse Image | name each crop | base64 image | No | {label, category, confidence, brand?, model?} | | Extracts brand/model when visible |
-| Muse Spark | guest steps, item choice | base64 image + prompt | No | {label}, {title, steps, warnings, seen, unsure} | | Used for guide() and choose_candidate() |
-| Open-weights VLM (Baseten/Modal) | audit judging | base64 images + prompt | No | {status, count_seen, evidence_frame, confidence, where?, at_usual_spot?, reason} | | Fallback for judge() |
+| Segmentation model (`META_SEGMENT_MODEL`) | find object regions | One data-URI image in `input` | No | JSON array of pixel boxes and scores | Not measured | Client normalizes pixel boxes when dimensions are known. Live schema unverified. |
+| Label model (`META_LABEL_MODEL`) | name one crop | One data-URI image in `input` | No | JSON label/category/confidence and optional brand/model | Not measured | Live schema and accuracy unverified. |
+| Reasoning model (`META_REASON_MODEL`) | guest guide, candidate choice, or judge fallback | Image data URIs and prompt in `input` | No | JSON parsed into interface dataclasses | Not measured | Multi-image encoding is covered by request tests, not live provider verification. |
+| Configured VLM (`VISION_LLM_URL`) | audit judging | Array of base64 images and prompt | No | JSON judgement | Not measured | Sends `temperature: 0`; supports a few response envelope shapes. Verify against the chosen endpoint. |
 
-## Real request and response examples
+## Client-contract examples (mocked HTTP)
 
-Verified against the live Meta API at `https://api.meta.ai/v1/responses`.
+The examples below describe the current implementation and its tests. They are illustrative, not captured live-provider traffic.
 
-### SAM 3.1 segmentation (mocked)
+### Segmentation response text
+
 ```json
-{
-  "segments": [
-    {"bbox": [120, 250, 80, 100], "score": 0.95, "polygon": [[120,250],[200,250],[200,350],[120,350]]},
-    {"bbox": [300, 400, 50, 40], "score": 0.90},
-    {"bbox": [500, 200, 60, 110], "score": 0.88}
-  ]
-}
+[
+  {"bbox": [120, 250, 80, 100], "score": 0.95},
+  {"bbox": [300, 400, 50, 40], "score": 0.90}
+]
 ```
 
-### Muse Image labeling — /responses request
-```json
-{
-  "model": "muse-image-1.0",
-  "input": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD... Identify the single main object in this image. Return JSON only: {\"label\": \"...\", \"category\": \"...\", \"confidence\": <0 to 1>, \"brand\": null, \"model\": null}"
-}
-```
+Coordinates are divided by the source image's width and height to produce normalized boxes.
 
-### Muse Image labeling — response (extracted text)
+### Label response text
+
 ```json
 {"label": "Samsung TV remote", "category": "remote", "confidence": 0.92, "brand": "Samsung", "model": null}
 ```
 
-### Muse Spark — text-only /v1/responses request
+### Judge response text
+
 ```json
 {
-  "model": "muse-spark-1.3",
-  "input": "Say hello in plain text, no emoji."
+  "status": "present",
+  "count_seen": 1,
+  "evidence_frame": 1,
+  "confidence": 0.96,
+  "at_usual_spot": false,
+  "where": "on the sofa",
+  "reason": "The matching remote is on the sofa."
 }
 ```
 
-### Muse Spark — response
-```json
-{"model": "muse-spark-1.3", "id": "resp_6ae853a5ffc2ebfdb3b5439a", "object": "response", "status": "completed", "output": [{"type": "reasoning", "summary": [{"type": "summary_text", "text": "Hello"}]}]}
+The image-array judge sends the reference crop, optional wide context image, and walkthrough frames in that order. It sends `temperature: 0`, parses the JSON response, and retries once when the request fails or the response is not valid JSON. Contract tests mock both the Meta-compatible text input and the VLM image-array request formats.
+
+## Live-provider verification
+
+No live-provider smoke test or real-video accuracy evaluation has been recorded yet. Before relying on a provider, run the opt-in smoke test with real sample images and credentials:
+
+```powershell
+python scripts/try_models.py --image path\to\sample.jpg
+python scripts/try_models.py --image path\to\sample.jpg `
+  --judge-reference path\to\reference.jpg `
+  --judge-context path\to\wide-baseline.jpg `
+  --judge-frame path\to\walkthrough-frame-1.jpg `
+  --judge-frame path\to\walkthrough-frame-2.jpg
 ```
 
-## Credit budget
-- Credits available: TBD
-- Estimated cost per baseline photo: TBD
-- Estimated cost per audit room: TBD
+The judge call costs provider usage. The script exits non-zero if any requested model call fails. Record sanitized request/response notes here, with date, configured model IDs, provider, rate limits, image-count limits, and cost. Never save credentials or private property imagery in this document.
 
-## Decisions
-- Segmentation on video: tracking mode available? TBD (Skeleton assumes NO and works either way.)
-- Judge model used: Meta reasoning model (default) or Baseten VLM (when VISION_LLM_URL set)
-
-## Implementation Notes
-
-### segment() - Pixel to normalized conversion
-SAM 3.1 returns bounding boxes in pixel coordinates [x, y, w, h]. The segment() method in meta.py normalizes these to 0..1 range:
-```
-normalized_x = pixel_x / image_width
-normalized_y = pixel_y / image_height
-normalized_w = pixel_w / image_width
-normalized_h = pixel_h / image_height
-```
-
-### label() - Brand/model extraction
-The prompt explicitly asks for brand and model fields when visible. These are extracted and returned in the Label dataclass:
-- `brand`: The brand name (e.g., "Samsung", "Nespresso") or null
-- `model`: The model name (e.g., "Vertuo Plus") or null
-- If not visible, both fields are null
-
-### Response envelope parsing
-The /v1/responses endpoint returns an envelope with an `output` array. Each output item has a `type`:
-- `message`: contains `content` array with `output_text` items
-- `reasoning`: contains `summary` array with `summary_text` items
-
-Extract text by concatenating all `output_text` and `summary_text` values.
-
-### Mock mode fallback
-When MOCK_MODELS=true (default), the MockClient provides deterministic fake responses. The NAMES table includes mock brand/model values for testing:
-```python
-NAMES = [
-    ("Nespresso Vertuo Plus", "appliance", "Nespresso", "Vertuo Plus"),
-    ("Samsung TV remote", "remote", "Samsung", None),
-    ...
-]
-```
+| Verification | Status |
+|---|---|
+| Client request/response contract tests | Automated; mocked HTTP |
+| Live segmentation, labeling, candidate, and guide calls | Not recorded |
+| Live multi-image judge call | Not recorded |
+| Rate limits and credit budget | Not recorded |
+| Real-video accuracy | Pending the labeled dataset in `backend/accuracy/manifest.csv` |

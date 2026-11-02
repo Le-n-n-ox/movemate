@@ -1,8 +1,12 @@
 import threading
 import time
+import sys
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -30,7 +34,17 @@ def _run_retention_cleanup():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(engine)
+    if settings.auto_create_schema:
+        Base.metadata.create_all(engine)
+    else:
+        backend_dir = Path(__file__).resolve().parent.parent
+        if str(backend_dir) not in sys.path:
+            sys.path.insert(0, str(backend_dir))
+        alembic_config = Config(str(backend_dir / "alembic.ini"))
+        alembic_config.set_main_option(
+            "script_location", str(backend_dir / "alembic")
+        )
+        command.upgrade(alembic_config, "head")
     storage.data_root()
     # Start retention cleanup thread
     cleanup_thread = threading.Thread(target=_run_retention_cleanup, daemon=True)

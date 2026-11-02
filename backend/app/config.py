@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_env: str = "dev"
+    auto_create_schema: bool = False
     database_url: str = f"sqlite:///{Path(__file__).resolve().parent.parent.parent / 'movemate.db'}"
     data_dir: str = _DEFAULT_DATA_DIR
     public_base_url: str = "http://localhost:8000"

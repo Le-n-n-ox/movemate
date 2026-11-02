@@ -56,7 +56,7 @@ A3. Architecture
    FastAPI backend (http://localhost:8000)  --->  Postgres (docker service "db")
         |   |
         |   +--> files in ./data  (served at /media/...)
-        +------> model client: mock.py now, meta.py for real models
+        +------> model client: mock.py or implemented provider adapters in meta.py
                  (segmentation, labeling, reasoning, audit judging)
 
 The browser never calls a model and never holds an API key. All model calls happen in the backend, behind one interface (backend/app/services/models/base.py). That is why the frontend can be built completely against mock mode.
@@ -374,7 +374,7 @@ Model integration, pipelines, accuracy tuning, tests, Docker, retention and priv
 D2. Stack and folder map
 Tool	Why
 Python 3.11, FastAPI, Uvicorn	Fast to write, automatic /docs that doubles as the live contract.
-SQLAlchemy 2 + Postgres 16 (docker service db)	Tables created at startup (create_all). Tests use SQLite.
+SQLAlchemy 2 + Postgres 16 (docker service db)	Alembic upgrades the schema at application startup. Tests can opt into SQLite `create_all`.
 Pillow, ffmpeg (installed in the backend image)	Crop images, cut videos into frames.
 httpx	Calls to Meta and Baseten/Modal.
 pytest	Tests. Run: docker compose run --rm backend pytest
@@ -405,15 +405,15 @@ backend/
       models/
         base.py             the interface every model client implements
         mock.py             fake answers (default)
-        meta.py             REAL calls, full of TODO(backend) markers
-  tests/test_flow.py        full AI flow, and the property + inspection + case flow, in mock mode
+        meta.py             provider adapters (live provider behavior still needs smoke tests)
+  tests/                    mock-flow, contract, pure logic, model-client, and accuracy tests
 D3. Local development
-docker compose up --build runs everything. The backend reloads when you save a file (the folder is mounted).
+docker compose up --build runs everything. The backend applies Alembic migrations before serving and reloads when you save a file (the folder is mounted).
 Interactive API: http://localhost:8000/docs. Use it to try endpoints.
-Database shell: docker compose exec db psql -U movemate movemate. Reset everything: docker compose down -v. Do this after every pull that changes models.py: tables are created at startup with create_all, which adds missing tables but never adds columns to an existing one. Before real users, replace it with Alembic migrations.
+Database shell: docker compose exec db psql -U movemate movemate. Schema changes belong in Alembic revisions; app startup runs `alembic upgrade head`. `create_all` is disabled by default and is enabled only in tests with `AUTO_CREATE_SCHEMA=true`. Do not reset the database after schema changes.
 Files you create land in ./data (images, crops, frames), served at /media/....
 Switch to real models by setting MOCK_MODELS=false in .env and restarting the backend. You can run real and mock side by side by keeping two .env files.
-Tests: docker compose run --rm backend pytest -q. They run the whole flow including a real ffmpeg video. Keep them green before every merge.
+Tests: `docker compose run --rm backend pytest -q`. The end-to-end video test uses ffmpeg, which is installed in the backend image.
 Add a dependency: put it in requirements.txt and run docker compose build backend.
 D4. Data model
 Table	Key columns	Notes
@@ -431,36 +431,23 @@ discrepancy_events	id, discrepancy_id, kind, text, photo_path, actor, role, crea
 
 Ids are string UUIDs. Paths in the database are relative to DATA_DIR. Convert to URLs only at the edge with storage.url_for() (that is the only place that knows the public base URL).
 
-D5. The model layer (do this first, on day 1)
+D5. The model layer
 
 Pipelines call only the interface in services/models/base.py. That is the whole trick: you can change vendors, add caching or add retries in one folder.
 
-Method	Job	Real implementation
-segment(image)	Find object regions. Return normalized boxes.	SAM 3.1 via the Meta API
-label(crop)	Name one cropped object (brand and model if visible).	Muse Image
-choose_candidate(image, candidates)	Pick the right item from a short list (guest matching).	Muse Spark (or the same model as judge)
-guide(image, label, notes)	Write guest steps, grounded in host notes.	Muse Spark
-judge(reference_crop, context_image, frames, label, quantity, location_hint, notes)	Reference matching. Is the item from the baseline photo visible in these video frames?	Open-weights vision model on Baseten/Modal, or Muse Spark if it takes several images
-Day-1 verification checklist (before writing any real call)
-
-The model names and endpoints in the brief came from the hackathon materials and have not been verified. Open the hackathon docs and answer these for every model, then write the answers in docs/MODELS.md:
-
- Does it take an image as base64, as a URL, or both? (The skeleton sends base64.)
- Does it accept several images in one request? How many? (Needed for judge.)
- Does it accept video directly? Maximum length and size? (The skeleton does NOT depend on this: it cuts frames itself.)
- Does SAM 3.1 return boxes, masks or both? In pixels or fractions? (You must output normalized 0..1 boxes.)
- Does the segmentation API offer video tracking with persistent object ids? (If yes, use it later to dedupe; the skeleton works without.)
- Rate limits and the credit budget. Estimate the cost of one baseline photo and one audit room.
- Can you force JSON output? If not, keep the defensive JSON parser in meta.py.
- Save one working request and response for each model in MODELS.md.
-
-Then implement meta.py in this order, running pytest after each step with MOCK_MODELS=true to prove you did not break the contract: 1. _post and _chat helpers, 2. segment, 3. label, 4. guide, 5. choose_candidate, 6. judge. Search the file for TODO(backend): every guess you must confirm is marked.
+Method	Job	Implementation / verification
+segment(image)	Find object regions. Return normalized boxes.	Provider adapter implemented; live call not recorded.
+label(crop)	Name one cropped object (brand and model if visible).	Provider adapter implemented; live call not recorded.
+choose_candidate(image, candidates)	Pick the right item from a short list (guest matching).	Provider adapter implemented; live call not recorded.
+guide(image, label, notes)	Write guest steps, grounded in host notes.	Provider adapter implemented; live call not recorded.
+judge(reference_crop, context_image, frames, label, quantity, location_hint, notes)	Reference matching. Is the item from the baseline photo visible in these video frames?	Meta-compatible and configured VLM adapters implemented; multi-image request tests are mocked; live call not recorded.
+ All five methods have provider adapters. Tests in `backend/tests/test_meta_client.py` exercise their parsing and request construction with mocked HTTP; the judge tests cover multiple images, zero temperature for the VLM, and invalid-JSON retry. These tests are not live-provider verification. Model IDs, provider-side image limits, rate limits, costs, and real response shapes still need confirmation with the configured provider and credentials. See `docs/MODELS.md` and the opt-in `scripts/try_models.py` smoke test. Do not describe mocked examples as live requests.
 
 Prompts that are already written (in meta.py)
 Label prompt: returns JSON {label, category, confidence}. Ask for brand and model when visible.
 Guide prompt: says to trust host notes over assumptions and to say what is not visible instead of guessing. Keep that rule.
 Judge prompt: the most important one. It forces three honest states (present, not_visible, missing), forbids saying missing unless the usual spot is clearly visible, and asks for a count and an evidence frame. Do not weaken it.
-Always call judging with temperature 0 and validate the JSON. Retry once on bad JSON, then raise (the audit marks itself failed with a readable stage message).
+The configured VLM adapter sends judging with temperature 0. The Meta-compatible fallback does not set a temperature field; verify provider support before changing its request. Judge output is parsed as JSON and retried once on request/JSON errors, then raised (the audit marks itself failed with a readable stage message).
 D5b. The inspection and case logic (no models involved)
 
 This is plain business logic. It must be boringly correct, because it is the record the host relies on. The rules are in A6b. Where they live:
@@ -511,16 +498,16 @@ on any exception: status = failed, stage = "Failed: <short reason>"
 Never produce missing from a view that did not cover the item's spot. That is unverified.
 MIN_MISSING_CONFIDENCE (0.7) turns doubtful missing into unverified. MIN_MISPLACED_CONFIDENCE (0.6) ignores doubtful 'seen elsewhere' answers, which avoids false moves but can hide a real one.
 The decision logic is in pipeline/verdicts.py and has no database code, so you can unit test it with the mock client (see RoomFrames and check_item). Keep it that way.
-judge must return where and at_usual_spot. The real prompt in meta.py asks for both. Confirm the real model fills them in; if it returns null, moves inside a room will be missed (cross-room finds still work).
+judge must return where and at_usual_spot. The prompt asks for both; live-provider behavior has not yet been verified. If either is null, moves inside a room may be missed (cross-room finds still work).
 The evidence frame is the frame the model named, mapped back through picks to the stored frame path.
-Add the planned fallback flag AUDIT_MODE=direct: skip the frame-labeling step (_observe) and send evenly spread frames. It is cheaper, has fewer moving parts, and is your safety net if segmentation misbehaves on demo day.
+`AUDIT_MODE=direct` is implemented: it skips frame labeling and sends evenly spread frames. Compare it against the normal mode using reviewed videos before relying on it.
 D7. Making the video-matching accurate, and proving it
 
 The skeleton gets the plumbing right. Whether the real models recognise the specific item from the photo inside a moving video is something you must measure, then tune.
 
 Tuning levers, cheapest first
 Lever	How
-Better reference	Send BOTH the close crop and the wide source photo to judge (the skeleton passes context_image; make sure meta.py actually sends it as an extra image and the prompt mentions it).
+Better reference	The judge already sends BOTH the close crop and optional wide source photo; verify the live provider handles the multi-image request, then compare reviewed outcomes.
 Better frames	Increase shortlist size from 4 to 6 for small items; sample 3 fps; drop blurry frames (variance of Laplacian under a threshold) before judging.
 Location hints	Fill location_hint automatically at baseline ('left of the lamp, on the coffee table') using one extra model call, and include it in the judge prompt.
 Two-pass judging	Already built (verdicts.py): not present -> second look with 8 frames, missing needs both passes. Tune the frame counts (FIRST_PASS, SECOND_PASS).
@@ -538,20 +525,20 @@ Kitchen item moved to the living room (x2)	misplaced
 3 of 4 glasses	count_mismatch			
 Spot not filmed	unverified			
 
-Track: removed items caught, moves caught (inside the room and across rooms), false alarms (flagged but present), unverified rate. A system with some unverified and zero false accusations is better than one that never says unverified and sometimes accuses wrongly.
+Track removed items caught, moves caught (inside the room and across rooms), false missing findings, unverified rate, and exact outcome accuracy. `backend/accuracy/manifest.csv` contains the 15-case plan. Add each real video path and its reviewed `actual` outcome, then run `python scripts/evaluate_audit_accuracy.py backend/accuracy/manifest.csv`. The runner refuses incomplete cases and reports exact accuracy, missing precision/recall, false missing count, and a confusion matrix. No accuracy result is claimed until real videos have been run and reviewed.
 
 D8. Endpoint checklist (what the skeleton gives you, what you finish)
 Endpoint group	Skeleton status	Your job
 Properties, rooms, places, items, condition	Complete	Add validation edge cases and tests. Keep the contract.
-Inspections, cleaning checks, readiness	Complete (logic checked in isolation, full flow test written)	Run test_property_inspection_and_cases first: it was written without a running database. Fix whatever it finds.
-Cases (discrepancies)	Complete	Same. Add a test for each 403 in A6b.
+Inspections, cleaning checks, readiness	Complete; pure rules and end-to-end flows are tested	Add edge cases as behavior changes.
+Cases (discrepancies)	Complete; mock-flow and permissions are tested	Add a test for each new permission rule.
 Printable room sheet	Complete	Check it prints on one page for the demo room.
-Baseline photo and video	Works with mock	Real segment and label; tune caps; log cost.
-Guest ask	Works with mock	Real choose_candidate and guide; add rate limiting.
-Audit upload, run, poll	Works with mock	Real judge; shortlist; thresholds; AUDIT_MODE=direct.
+Baseline photo and video	Works with mock; provider adapters implemented	Smoke-test segment/label with live credentials; tune against real inputs.
+Guest ask	Works with mock; provider adapters and rate limiting implemented	Smoke-test candidate choice and guide with live credentials.
+Audit upload, run, poll	Works with mock; real judge adapter implemented	Verify against live provider and measure with the labeled accuracy set.
 Finding roles (PATCH /findings/{id})	Complete	Rules live in pipeline/permissions.py (can_set). Keep the table in A6 and the code in step. When login arrives, derive the role from the user, not the request body.
 Dev seed	Complete	Keep behaviours stable: the frontend depends on them (B4).
-Not built yet	-	Auth, migrations, and everything marked Later in A5. (Retention job, usage table, and rate limiting are now implemented.)
+Not built yet	-	Auth and everything marked Later in A5. Real-provider behavior and real-video accuracy are not yet verified.
 D9. Reliability, cost, security, privacy (do these by day 9)
 Topic	What to do
 Cost caps	DONE: config has caps (40 frames/room, 20 segments/image, 10 frames/baseline video). Usage table added (ModelUsage) with /api/meta/usage endpoint. Log every model call via log_model_call().
@@ -561,22 +548,22 @@ Rate limiting	DONE: guest endpoint limited to 10 req/hour per IP. Returns HTTP 4
 Upload safety	DONE: size caps exist (15 MB image, 150 MB video). Reject non-image files by trying to open with Pillow (already done in imaging).
 Secrets	DONE: keys only in .env, never in code or logs. .env is git-ignored. Do not log request bodies or image bytes.
 Privacy	DONE: guest photos deleted after 24h. Audit videos and frames deleted after 30 days except evidence frames. Daily cleanup thread + manual /api/meta/cleanup endpoint.
-Migrations	NOT DONE (demo only): create_all cannot alter existing tables. For demo, docker compose down -v after model change. Before real users, add Alembic.
+Migrations	DONE: Alembic revisions run with `alembic upgrade head` during application startup. Add a revision for every schema change; do not rely on `create_all` or wipe the database.
 Auth	NOT DONE (after demo): host endpoints open in v1. Roles come from request body. Before real users, add login, take role from signed-in user, check property ownership.
 Storage later	DONE: storage.py has 3 functions (data_root, save_bytes, read_bytes, abs_path, url_for). Swap bodies for Supabase/S3.
 D10. Your 10-day plan
 Days	Goal	Deliverables	Gate to pass
-1-2	Foundation	First run of everything: docker compose up --build, then pytest. The v2 code has never been executed, so expect to fix small things. Verify the model docs, fill MODELS.md. Real segment + label working in a small script.	Stack up, both tests green, one real photo goes through segment + label.
+1-2	Foundation	Stack, migrations, and automated tests. Run `scripts/try_models.py` with provider credentials before claiming live model support.	Stack up; `alembic check` clean; tests green; live provider smoke test recorded separately.
 3-4	Baseline scan	Real baseline photo and video pipelines, caps, dedupe tuned, cost logged.	Demo kitchen fully scanned and sensible.
 5	Guest guide	Real choose_candidate and guide, caching, rate limit, host notes flow through to guides, staff-only items hidden.	10 test photos return the right appliance guide.
 6	Inspection and cases	Harden the rules in A6b with tests for every 403, 409 and 422. Make sure the demo data lets you reach all three readiness outcomes by hand.	Ready, ready with exceptions and not ready each reachable in the demo (frontend guide D9).
-7-8	AI video check	Real judge, frame shortlist, thresholds, fallback flag, evidence frames, build the 15-video test set.	Removed items flagged, unverified when unsure.
+7-8	AI video check	Complete and review the 15-video set in `backend/accuracy/manifest.csv`; run the audit and score reviewed outcomes with `scripts/evaluate_audit_accuracy.py`.	Publish measured accuracy and false-missing rate; do not substitute mock results.
 9-10	Polish and demo	Measure and report real accuracy, retention task, failure tests, demo data frozen, rehearsals with the frontend dev.	Three clean rehearsals plus a backup recording.
 D11. Testing
-pytest has two tests: the full AI flow, and test_property_inspection_and_cases (property details, nested places, condition history, inspection, high-value photo rule, case open and resolve, exception, readiness, recorded-missing skip). The pure modules (inspection_logic.py, verdicts.py, permissions.py) need no database, so add direct unit tests for them as you go. pytest covers the full mock flow: seed, baseline, confirm, video upload, audit run, findings, guest ask, and the cleaner/host rules (cleaner gets 403 on confirm and dismiss, can mark found, host confirms, cleaner cannot undo a host decision, missing role gives 422). Add a test whenever you change behaviour.
+The backend suite includes mock end-to-end flows, OpenAPI contract checks, pure business-rule tests, mocked model-client request/response tests, and accuracy-manifest scoring tests. Run `pytest -q` from `backend/`; ffmpeg is required for the video flow and is installed in the backend Docker image. Mock HTTP tests do not replace live-provider smoke tests.
 Add contract tests: after any change to schemas.py, check http://localhost:8000/openapi.json still contains every endpoint in Part B.
-Keep a scripts/try_models.py (you write it) that calls each real model once with a sample image and prints the raw response. It saves hours when a vendor changes something.
-Before each merge: docker compose down -v && docker compose up --build, load demo data, click through all three workflows once.
+`scripts/try_models.py` exercises segment, label, candidate choice, and guide calls. Add `--judge-reference` plus one or more `--judge-frame` arguments to exercise the multi-image judge; `--judge-context` is optional. Calls may incur provider charges. It prints parsed results, not raw responses.
+Before each merge: `docker compose up --build`, load demo data, click through all three workflows once. Use `docker compose down -v` only when intentionally deleting the local database volume.
 D12. Troubleshooting
 Symptom	Likely cause and fix
 Backend exits at start with a database error	Postgres not ready or wrong URL. docker compose logs db. Compose waits for the health check; if you changed credentials, run docker compose down -v.
