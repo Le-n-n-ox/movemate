@@ -1,0 +1,20 @@
+import { createContext, useContext } from "react";
+
+export type Mode = "light" | "dark" | "system";
+export type Accent = "teal" | "indigo" | "violet" | "slate";
+
+export interface ThemeState {
+  mode: Mode;
+  resolved: "light" | "dark";
+  accent: Accent;
+  setMode: (m: Mode) => void;
+  setAccent: (a: Accent) => void;
+}
+
+export const ThemeCtx = createContext<ThemeState | null>(null);
+
+export function useTheme() {
+  const v = useContext(ThemeCtx);
+  if (!v) throw new Error("useTheme must be used inside ThemeProvider");
+  return v;
+}

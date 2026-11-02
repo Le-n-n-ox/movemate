@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import Landing from "@/pages/Landing";
 import Properties from "@/pages/Properties";
 import Property from "@/pages/Property";
 import Room from "@/pages/Room";
@@ -12,7 +13,7 @@ import Guest from "@/pages/Guest";
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/properties" replace />} />
+      <Route path="/" element={<Landing />} />
       <Route path="/properties" element={<Properties />} />
       <Route path="/properties/:id" element={<Property />} />
       <Route path="/properties/:id/rooms/:roomId" element={<Room />} />
@@ -22,7 +23,7 @@ export default function App() {
       <Route path="/inspection/:id/readiness" element={<Readiness />} />
       <Route path="/audit/:auditId" element={<Audit />} />
       <Route path="/g/:token" element={<Guest />} />
-      <Route path="*" element={<Navigate to="/properties" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
