@@ -117,6 +117,8 @@ Typical flow: the audit finds a missing remote. The cleaner looks, finds it in a
 Cleaner cannot find it: the cleaner leaves it open, the host decides. The host can also confirm directly without the cleaner.
 No login in v1. The role is sent with every update (role: 'cleaner' | 'host'). The frontend takes it from the link: /audit/{id}?role=host for the host (default links from the property page), /audit/{id}?role=cleaner for the cleaner (the default when no role is given). The host has a Copy link for the cleaner button.
 This is a stand-in, not security. Anyone who edits the link can act as host. Before real users, add login, take the role from the signed-in user, and ignore any role sent by the client.
+
+TODO (frontend): Add a sign-in/role picker on the landing 'Open app' button so the user chooses Host / Cleaner / Guest before entering. Route: host -> /properties?role=host, cleaner -> /properties?role=cleaner, guest -> /g/:token (prompt for token). v1 has no real auth; this is UX only. Role must then be threaded through all property/audit/inspection/case links (do not hardcode ?role=host). Backend enforces 403s per role (see backend guide A6/A6b).
 The server records who resolved each finding (resolved_by) and when (resolved_at) so the history is clear.
 A6b. Inspections, cases and readiness: the rules
 
