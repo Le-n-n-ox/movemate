@@ -1,9 +1,12 @@
+import { AlertTriangle, CheckCircle2, Package } from "lucide-react";
 import { api } from "@/lib/api";
 import { CONDITIONS } from "@/lib/labels";
 import { useAsync } from "@/hooks/useAsync";
 import type { ItemCondition, RoomOut } from "@/lib/types";
 import { ErrorNote } from "@/components/Shell";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { Donut } from "@/components/charts/Donut";
 import { BarCounts } from "@/components/charts/BarCounts";
@@ -13,6 +16,8 @@ const COLOR: Record<ItemCondition, string> = {
   new: "var(--chart-1)", good: "var(--ok)", worn: "var(--warn)",
   under_repair: "var(--info)", damaged: "var(--chart-6)", missing: "var(--danger)",
 };
+
+const ATTENTION: ItemCondition[] = ["damaged", "missing", "under_repair"];
 
 export function InsightsCard({ rooms }: { rooms: RoomOut[] }) {
   const key = rooms.map((r) => r.id).join(",");
@@ -32,8 +37,28 @@ export function InsightsCard({ rooms }: { rooms: RoomOut[] }) {
     .filter((d) => d.value > 0);
   const perRoom = rooms.map((r, i) => ({ name: r.name, value: r.confirmed_items, color: `var(--chart-${(i % 5) + 1})` }));
 
+  const needAttention = items.filter((i) => ATTENTION.includes(i.condition)).length;
+  const fine = items.length - needAttention;
+
   return (
-    <>
+    <div className="stagger space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="gap-1 p-3">
+          <Package className="size-4 text-muted-foreground" aria-hidden />
+          <p className="font-display text-2xl font-extrabold"><AnimatedNumber value={items.length} /></p>
+          <p className="text-xs text-muted-foreground">Items</p>
+        </Card>
+        <Card className="card-ok gap-1 p-3">
+          <CheckCircle2 className="size-4 text-ok" aria-hidden />
+          <p className="font-display text-2xl font-extrabold"><AnimatedNumber value={fine} /></p>
+          <p className="text-xs text-muted-foreground">No issues</p>
+        </Card>
+        <Card className={`gap-1 p-3 ${needAttention > 0 ? "card-warn" : ""}`}>
+          <AlertTriangle className={`size-4 ${needAttention > 0 ? "text-warn" : "text-muted-foreground"}`} aria-hidden />
+          <p className="font-display text-2xl font-extrabold"><AnimatedNumber value={needAttention} /></p>
+          <p className="text-xs text-muted-foreground">Need attention</p>
+        </Card>
+      </div>
       <ChartCard
         title="Item condition"
         summary={conditions.map((d) => `${d.name}: ${d.value}`).join(", ")}
@@ -43,6 +68,6 @@ export function InsightsCard({ rooms }: { rooms: RoomOut[] }) {
       <ChartCard title="Items per room" summary={perRoom.map((d) => `${d.name}: ${d.value}`).join(", ")}>
         <BarCounts data={perRoom} />
       </ChartCard>
-    </>
+    </div>
   );
 }

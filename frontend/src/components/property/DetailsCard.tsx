@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { Building2, Home, MapPin, Pencil, ScrollText, Users } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { PropertyOut } from "@/lib/types";
@@ -34,20 +34,38 @@ export function DetailsCard({ property: p, onSaved }: { property: PropertyOut; o
   }
 
   if (!edit) {
+    const facts = [
+      { Icon: Building2, label: "Type", value: p.property_type, wide: false },
+      { Icon: Users, label: "Guests", value: p.capacity, wide: false },
+      { Icon: MapPin, label: "Address", value: p.address, wide: true },
+    ];
     return (
-      <Card className="gap-3 p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Details and house rules</h2>
+      <Card className="gap-4 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="card-title">
+            <span className="icon-badge"><Home className="size-5" aria-hidden /></span> Details and house rules
+          </h2>
           <Button variant="ghost" onClick={() => setEdit(true)} className="btn-tap"><Pencil className="size-4" /> Edit</Button>
         </div>
-        <dl className="grid grid-cols-2 gap-2 text-sm">
-          <div><dt className="text-muted-foreground">Type</dt><dd>{p.property_type || "Not set"}</dd></div>
-          <div><dt className="text-muted-foreground">Guests</dt><dd>{p.capacity ?? "Not set"}</dd></div>
-          <div className="col-span-2"><dt className="text-muted-foreground">Address</dt><dd>{p.address || "Not set"}</dd></div>
+        <dl className="stagger grid grid-cols-2 gap-2 text-sm">
+          {facts.map(({ Icon, label, value, wide }) => (
+            <div key={label} className={`flex items-start gap-3 rounded-xl border bg-card p-3 ${wide ? "col-span-2" : ""}`}>
+              <span className="icon-badge size-8"><Icon className="size-4" aria-hidden /></span>
+              <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">{label}</dt>
+                <dd className="break-words font-medium">
+                  {value || <span className="font-normal text-muted-foreground">Not set</span>}
+                </dd>
+              </div>
+            </div>
+          ))}
         </dl>
         {p.details && <p className="text-sm">{p.details}</p>}
-        <div className="rounded-lg bg-secondary p-3 text-sm">
-          <p className="mb-1 font-medium">House rules (guests see this)</p>
+        <div className="rounded-lg border-l-4 border-primary bg-secondary p-3 text-sm">
+          <p className="mb-1 flex items-center gap-2 font-semibold">
+            <ScrollText className="size-4 text-primary" aria-hidden /> House rules
+            <span className="text-xs font-normal text-muted-foreground">(guests see this)</span>
+          </p>
           <p className="whitespace-pre-wrap">{p.rules || "No rules yet. Tap Edit to add them."}</p>
         </div>
       </Card>
@@ -55,8 +73,10 @@ export function DetailsCard({ property: p, onSaved }: { property: PropertyOut; o
   }
 
   return (
-    <Card className="gap-3 p-4">
-      <h2 className="text-lg font-semibold">Edit details</h2>
+    <Card className="card-info gap-3 p-4">
+      <h2 className="card-title">
+        <span className="icon-badge"><Pencil className="size-5" aria-hidden /></span> Edit details
+      </h2>
       <div className="space-y-1.5"><Label htmlFor="d-addr">Address</Label><Input id="d-addr" className="h-12" value={f.address} onChange={on("address")} /></div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5"><Label htmlFor="d-type">Type</Label><Input id="d-type" className="h-12" value={f.property_type} onChange={on("property_type")} /></div>

@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Cases() {
   const { id = "" } = useParams();
-  const { role } = useRole();
+  const { withRole } = useRole();
   const list = useAsync(() => api.listCases(id), [id]);
   const [showResolved, setShowResolved] = useState(false);
 
@@ -22,7 +22,7 @@ export default function Cases() {
   const resolvedCount = all.filter((c) => c.status === "resolved").length;
 
   return (
-    <Shell title="Cases" back={`/properties/${id}`} backLabel="Property">
+    <Shell title="Cases" back={withRole(`/properties/${id}`)} backLabel="Property">
       <p className="text-sm text-muted-foreground">
         A case is a record of something that needs a look. It is not a list of who to blame.
       </p>
@@ -40,7 +40,7 @@ export default function Cases() {
       <ul className="space-y-3">
         {shown.map((c) => (
           <li key={c.id}>
-            <Link to={`/cases/${c.id}?role=${role}`} className="block">
+            <Link to={withRole(`/cases/${c.id}`)} className="block">
               <Card className={`gap-2 p-4 active:bg-accent ${c.status === "resolved" ? "card-dim" : ""}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">

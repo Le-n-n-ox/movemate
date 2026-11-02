@@ -29,3 +29,12 @@ export function AnchorButton({ href, variant = "default", className, children }:
 export function HashButton({ href, variant = "default", className, children }: Common & { href: string }) {
   return <a href={href} className={cn(base, variants[variant], className)}>{children}</a>;
 }
+
+/** Plain button styled like the others. */
+export function ActionButton({ onClick, variant = "default", className, children }: Common & { onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={cn(base, variants[variant], className)}>
+      {children}
+    </button>
+  );
+}

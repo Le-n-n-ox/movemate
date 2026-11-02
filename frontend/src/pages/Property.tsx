@@ -19,7 +19,7 @@ import { InsightsCard } from "@/components/property/InsightsCard";
 export default function Property() {
     const { id = "" } = useParams();
     const nav = useNavigate();
-    const { role, actor, setActor } = useRole();
+    const { role, actor, setActor, withRole } = useRole();
     const p = useAsync(() => api.getProperty(id), [id]);
     const insp = useAsync(() => api.listInspections(id), [id]);
     const [busy, setBusy] = useState(false);
@@ -28,13 +28,13 @@ export default function Property() {
         setBusy(true);
         try {
             const a = await api.createAudit(id);
-            nav(`/audit/${a.id}?role=${role}`);
+            nav(withRole(`/audit/${a.id}`));
         } catch (e) { toast.error((e as Error).message); setBusy(false); }
     }
 
     const d = p.data;
     return (
-        <Shell title={d?.name ?? "Property"} back="/properties" backLabel="Properties">
+        <Shell title={d?.name ?? "Property"} back={withRole("/properties")} backLabel="Properties">
             {p.loading && [0, 1, 2].map((i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
             {p.error && <ErrorNote message={p.error} onRetry={() => p.refresh()} />}
             {d && (
@@ -45,7 +45,7 @@ export default function Property() {
                     <InspectionCard
                         pid={id} recent={insp.data ?? []} role={role} actor={actor} setActor={setActor} hasRooms={d.rooms.length > 0}
                     />
-                    <Link to={`/properties/${id}/cases?role=${role}`} className="block">
+                    <Link to={withRole(`/properties/${id}/cases`)} className="block">
                         <Card className="flex-row items-center justify-between p-4 active:bg-accent">
                             <span className="flex items-center gap-2 font-semibold"><FolderOpen className="size-5 text-primary" aria-hidden /> Cases</span>
                             <Pill tone={d.open_discrepancies > 0 ? "danger" : "neutral"}>{d.open_discrepancies} open</Pill>
@@ -58,7 +58,7 @@ export default function Property() {
                             {busy ? "Starting..." : "Start AI video check"}
                         </Button>
                         {d.latest_audit_id && (
-                            <LinkButton variant="outline" to={`/audit/${d.latest_audit_id}?role=${role}`}>
+                            <LinkButton variant="outline" to={withRole(`/audit/${d.latest_audit_id}`)}>
                                 Open latest check
                             </LinkButton>
                         )}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Building2, FlaskConical, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -11,11 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppearanceCard } from "@/components/AppearanceCard";
+import { useRole } from "@/hooks/useRole";
 
 export default function Properties() {
   const nav = useNavigate();
-  const [searchParams] = useSearchParams();
-  const role = searchParams.get("role") === "cleaner" ? "cleaner" : "host";
+  const { role, withRole } = useRole();
   const list = useAsync(api.listProperties);
   const health = useAsync(api.health);
   const [busy, setBusy] = useState(false);
@@ -34,7 +34,7 @@ export default function Properties() {
         capacity: f.capacity ? Number(f.capacity) : undefined,
       });
       toast.success("Property created");
-      nav(`/properties/${p.id}?role=${role}`);
+      nav(withRole(`/properties/${p.id}`));
     } catch (err) { toast.error((err as Error).message); }
     finally { setBusy(false); }
   }
@@ -44,7 +44,7 @@ export default function Properties() {
     try {
       const r = await api.seed();
       toast.success("Demo data loaded");
-      nav(`/properties/${r.property_id}?role=${role}`);
+      nav(withRole(`/properties/${r.property_id}`));
     } catch (err) { toast.error((err as Error).message); }
     finally { setBusy(false); }
   }
@@ -57,6 +57,9 @@ export default function Properties() {
       <p className="text-muted-foreground">
         Know what should be there, check it, and see clearly if your home is ready for the next guest.
       </p>
+      <p className="text-sm">
+        Viewing as <strong>{role}</strong>. <Link to="/" className="text-primary underline">Switch role</Link>
+      </p>
 
       <section aria-label="Your properties" className="space-y-3">
         {list.loading && [0, 1].map((i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
@@ -65,7 +68,7 @@ export default function Properties() {
           <EmptyState icon={<Building2 className="size-8" />} title="No properties yet" hint="Add your first home below." />
         )}
         {list.data?.map((p) => (
-          <Link key={p.id} to={`/properties/${p.id}?role=${role}`} className="block">
+          <Link key={p.id} to={withRole(`/properties/${p.id}`)} className="block">
             <Card className="gap-1 p-4 transition-colors active:bg-accent">
               <p className="text-lg font-semibold">{p.name}</p>
               <p className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">

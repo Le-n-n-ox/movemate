@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { CONDITIONS, KINDS } from "@/lib/labels";
 import type { ConditionEventOut, ItemCondition, ItemOut, ItemPatch, RoomOut } from "@/lib/types";
+import { useRole } from "@/hooks/useRole";
 import { FilePicker } from "@/components/FilePicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 export function ItemDetails({ item, places, actor, onChanged }: {
   item: ItemOut; places: RoomOut[]; actor: string; onChanged: () => void;
 }) {
+  const { role } = useRole();
   const [alts, setAlts] = useState(item.alternate_locations.join(", "));
   const [notes, setNotes] = useState(item.notes ?? "");
   const [min, setMin] = useState(item.min_quantity?.toString() ?? "");
@@ -32,7 +34,7 @@ export function ItemDetails({ item, places, actor, onChanged }: {
     if (!actor.trim()) return toast.error("Please enter your name at the top of the page.");
     setBusy(true);
     try {
-      await api.setCondition(item.id, { condition: c, actor: actor.trim(), role: "host", note: cNote.trim() || undefined, file: cPhoto ?? undefined });
+      await api.setCondition(item.id, { condition: c, actor: actor.trim(), role, note: cNote.trim() || undefined, file: cPhoto ?? undefined });
       setCNote(""); setCPhoto(null);
       toast.success("Condition saved");
       onChanged();

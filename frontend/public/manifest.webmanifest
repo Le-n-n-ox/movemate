@@ -2,7 +2,7 @@
   "name": "MoveMate Host Edition",
   "short_name": "MoveMate",
   "description": "Know what should be there, check it, and see if your home is ready.",
-  "start_url": "/properties",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

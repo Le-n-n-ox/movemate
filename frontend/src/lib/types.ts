@@ -124,3 +124,12 @@ export interface DiscrepancyDetail extends DiscrepancyOut {
   events: DiscrepancyEventOut[]; reference_crop_url: string | null; expected_location: string | null;
   ai_suggestion: AiSuggestion | null;
 }
+
+
+export interface UsageOut {
+  period_hours: number; total_cost: number;
+  by_model: Record<string, unknown>; by_route: Record<string, unknown>;
+}
+export interface CleanupResult {
+  status: string; guest_photos_deleted: number; audit_videos_deleted: number; audit_frames_deleted: number;
+}

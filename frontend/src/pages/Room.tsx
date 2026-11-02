@@ -17,7 +17,7 @@ import { ConfirmedItem } from "@/components/room/ConfirmedItem";
 
 export default function Room() {
   const { id = "", roomId = "" } = useParams();
-  const { actor, setActor } = useRole();
+  const { role, actor, setActor, withRole } = useRole();
   const room = useAsync(() => api.getRoom(roomId), [roomId]);
   const items = useAsync(() => api.listItems(roomId), [roomId]);
   const places = useAsync(() => api.listLocations(roomId), [roomId]);
@@ -44,8 +44,8 @@ export default function Room() {
 
   const err = room.error ?? items.error;
   return (
-    <Shell title={room.data?.name ?? "Room"} back={`/properties/${id}`} backLabel="Property">
-      <RoleBar role="host" actor={actor} onActor={setActor} />
+    <Shell title={room.data?.name ?? "Room"} back={withRole(`/properties/${id}`)} backLabel="Property">
+      <RoleBar role={role} actor={actor} onActor={setActor} />
       {(room.loading || items.loading) && [0, 1].map((i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
       {err && <ErrorNote message={err} onRetry={refresh} />}
       {room.data && (

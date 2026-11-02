@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { LinkButton } from "@/components/LinkButton";
-import { CheckCircle2, FileText } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { statusLabel } from "@/lib/labels";
 import type { InspectionDetail, Role } from "@/lib/types";
+import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ export function FinishCard({
   actor: string;
   onChanged: () => void;
 }) {
+  const { withRole } = useRole();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const isHost = role === "host";
@@ -46,9 +48,9 @@ export function FinishCard({
 
   if (insp.status !== "in_progress") {
     return (
-      <Card className="gap-3 p-4">
-        <h2 className="flex items-center gap-2 text-lg font-semibold">
-          <CheckCircle2 className="size-5 text-primary" aria-hidden />{" "}
+      <Card className="card-ok gap-3 p-4">
+        <h2 className="card-title">
+          <span className="icon-badge pop bg-ok/15 text-ok"><CheckCircle2 className="size-5" aria-hidden /></span>
           Inspection {statusLabel[insp.status].toLowerCase()}
         </h2>
         {insp.exception_note && (
@@ -59,7 +61,7 @@ export function FinishCard({
         <p className="text-sm text-muted-foreground">
           Completed does not mean ready. Check the report.
         </p>
-        <LinkButton to={`/inspection/${insp.id}/readiness?role=${role}`}>
+        <LinkButton to={withRole(`/inspection/${insp.id}/readiness`)}>
           <FileText className="size-5" /> Open readiness report
         </LinkButton>
       </Card>
@@ -67,12 +69,17 @@ export function FinishCard({
   }
 
   return (
-    <Card className="gap-3 p-4">
-      <h2 className="text-lg font-semibold">Finish</h2>
+    <Card className={`gap-3 p-4 ${insp.can_complete ? "card-ok" : "card-warn"}`}>
+      <h2 className="card-title">
+        <span className={`icon-badge ${insp.can_complete ? "bg-ok/15 text-ok" : "bg-warn/20 text-amber-800 dark:text-amber-300"}`}>
+          {insp.can_complete ? <CheckCircle2 className="size-5" aria-hidden /> : <AlertTriangle className="size-5" aria-hidden />}
+        </span>
+        Finish
+      </h2>
       {insp.blockers.length > 0 && (
-        <div>
-          <p className="mb-1 text-sm font-medium">Still to do</p>
-          <ul className="list-disc space-y-1 pl-5 text-sm">
+        <div className="warn-box">
+          <p className="mb-1 font-semibold">Still to do</p>
+          <ul className="list-disc space-y-1 pl-5">
             {insp.blockers.map((b, i) => (
               <li key={i}>{b}</li>
             ))}

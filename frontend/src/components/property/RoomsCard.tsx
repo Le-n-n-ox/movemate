@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { ROOM_TYPES } from "@/lib/labels";
 import type { RoomOut } from "@/lib/types";
+import { useRole } from "@/hooks/useRole";
 import { EmptyState, Pill } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,7 @@ export function RoomsCard({
   rooms: RoomOut[];
   onChanged: () => void;
 }) {
+  const { withRole } = useRole();
   const [name, setName] = useState("");
   const [type, setType] = useState("other");
   const [busy, setBusy] = useState(false);
@@ -52,7 +54,7 @@ export function RoomsCard({
         {rooms.map((r) => (
           <li key={r.id}>
             <Link
-              to={`/properties/${pid}/rooms/${r.id}`}
+              to={withRole(`/properties/${pid}/rooms/${r.id}`)}
               className="flex min-h-14 items-center gap-3 rounded-lg border p-3 active:bg-accent"
             >
               {r.reference_photo_url ? (

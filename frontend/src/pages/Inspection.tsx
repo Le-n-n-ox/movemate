@@ -15,7 +15,7 @@ import { FinishCard } from "@/components/inspection/FinishCard";
 
 export default function Inspection() {
   const { id = "" } = useParams();
-  const { role, isHost, actor, setActor, linkFor } = useRole();
+  const { role, isHost, actor, setActor, linkFor, withRole } = useRole();
   const insp = useAsync(() => api.getInspection(id), [id]);
   const pid = insp.data?.property_id;
   const prop = useAsync(async () => (pid ? api.getProperty(pid) : null), [pid]);
@@ -38,7 +38,7 @@ export default function Inspection() {
   }
 
   return (
-    <Shell title={d ? kindLabel(d.kind) : "Inspection"} back={pid ? `/properties/${pid}` : "/properties"} backLabel="Property">
+    <Shell title={d ? kindLabel(d.kind) : "Inspection"} back={withRole(pid ? `/properties/${pid}` : "/properties")} backLabel="Property">
       <RoleBar role={role} actor={actor} onActor={setActor} />
       {insp.loading && [0, 1].map((i) => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
       {insp.error && <ErrorNote message={insp.error} onRetry={() => insp.refresh()} />}

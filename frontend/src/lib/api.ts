@@ -25,6 +25,7 @@ async function req<R>(path: string, init?: RequestInit): Promise<R> {
       else if (Array.isArray(body.detail)) detail = body.detail.map((d: { msg: string }) => d.msg).join(", ");
     } catch { /* keep default */ }
     if (res.status === 413) detail = "That file is too big. Please record a shorter video.";
+    if (res.status === 429) detail = "Too many requests, try again later.";
     throw new ApiError(detail, res.status);
   }
   if (res.status === 204) return undefined as R;
@@ -52,6 +53,10 @@ const qs = (o: Record<string, string | undefined>) => {
 export const api = {
   health: () => req<T.Health>("/health"),
   seed: () => req<T.SeedResult>("/dev/seed", { method: "POST" }),
+  
+  // dev/admin
+  usage: () => req<T.UsageOut>("/meta/usage"),
+  cleanup: () => req<T.CleanupResult>("/meta/cleanup", { method: "POST" }),
 
   // properties
   listProperties: () => req<T.PropertyOut[]>("/properties"),
