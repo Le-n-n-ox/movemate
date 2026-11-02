@@ -6,6 +6,7 @@ from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, Stri
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
+from .services.usage import ModelUsage  # noqa: F401  ensure ModelUsage is in Base.metadata
 
 
 def new_id() -> str:

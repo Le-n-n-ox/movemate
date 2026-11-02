@@ -12,6 +12,12 @@ venv/
 .mypy_cache/
 *.egg-info/
 
+# archives
+*.zip
+
+# Graphify extension output (auto-generated)
+graphify-out/
+
 # node
 node_modules/
 .next/
@@ -30,3 +36,4 @@ data/*
 .idea/
 .vscode/
 *.log
+backend/data

@@ -1,12 +1,17 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Default data dir: project root/data (works both locally and in Docker)
+_DEFAULT_DATA_DIR = str(Path(__file__).resolve().parent.parent.parent / "data")
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_env: str = "dev"
-    database_url: str = "sqlite:///./movemate.db"
-    data_dir: str = "./data"
+    database_url: str = f"sqlite:///{Path(__file__).resolve().parent.parent.parent / 'movemate.db'}"
+    data_dir: str = _DEFAULT_DATA_DIR
     public_base_url: str = "http://localhost:8000"
     frontend_origin: str = "http://localhost:3000"
 
