@@ -154,6 +154,36 @@ Upgrading from v1? The new version adds database columns and tables, and the app
 Code changes reload by themselves (backend --reload, frontend next dev). You only rebuild when dependencies change.
 Real phone testing: put the phone on the same Wi-Fi. In .env set NEXT_PUBLIC_API_URL and PUBLIC_BASE_URL to http://<computer-ip>:8000 and FRONTEND_ORIGIN to http://<computer-ip>:3000. Restart. Open http://<computer-ip>:3000 on the phone.
 Reset the database: docker compose down -v. Backend logs: docker compose logs -f backend.
+
+A8. MCP Servers (AI assistant tools)
+
+Two MCP servers are configured for AI-assisted development. These run outside the project in your OpenCode client config, not in the repository.
+
+PostgreSQL MCP — query the database directly:
+- Connection: postgresql://movemate:movemate@localhost:5432/movemate
+- Use: inspect properties, items, findings, cases, audits, inspections without psql
+- Example queries: "Show all open cases", "List items with status missing", "Count findings by type"
+
+Docker MCP — manage containers:
+- Use: restart backend, view logs, rebuild after dependency changes
+- Example: "Restart the backend container", "Show docker compose logs for backend"
+
+Config location: your OpenCode client MCP config file (not in the repo). Add under mcpServers:
+
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://movemate:movemate@localhost:5432/movemate"]
+    },
+    "docker": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-docker"]
+    }
+  }
+}
+
+Requirements: docker compose up --build must be running for the PostgreSQL MCP to connect. Restart OpenCode after adding MCP servers so they are picked up.
 Part B. The shared API contract (identical in both guides)
 
 Source of truth in code: backend/app/schemas.py. Frontend mirror: frontend/lib/types.ts. Live version: http://localhost:8000/docs. A change to any endpoint, field or enum is ONE pull request touching all three of schemas.py, types.ts and docs/API_CONTRACT.md, approved by both people.

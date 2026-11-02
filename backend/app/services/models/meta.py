@@ -60,20 +60,43 @@ def _parse_json(text: str) -> dict:
     return json.loads(m.group(0))
 
 
+def _extract_text(raw: dict) -> str:
+    """Extract assistant text from the /v1/responses response envelope.
+
+    Output items can be:
+    - type "message": content array with output_text items
+    - type "reasoning": summary array with summary_text items
+    """
+    parts: list[str] = []
+    for item in raw.get("output", []):
+        if item.get("type") == "message":
+            for content in item.get("content", []):
+                if content.get("type") == "output_text":
+                    parts.append(content.get("text", ""))
+        elif item.get("type") == "reasoning":
+            for summary in item.get("summary", []):
+                if summary.get("type") == "summary_text":
+                    parts.append(summary.get("text", ""))
+    return "\n".join(parts).strip()
+
+
 class MetaClient:
     def _post(self, path: str, body: dict) -> dict:
-        # TODO(backend): confirm auth header style and path names in the hackathon docs.
         r = httpx.post(f"{settings.meta_api_base}{path}", json=body, timeout=90,
                        headers={"Authorization": f"Bearer {settings.meta_api_key}"})
         r.raise_for_status()
         return r.json()
 
     def _chat(self, model: str, images: list[bytes], prompt: str) -> str:
-        # TODO(backend): adapt to the real chat/vision request shape (base64 vs URL, field names).
-        content = [{"type": "image", "data": _b64(i)} for i in images] + [{"type": "text", "text": prompt}]
-        raw = self._post("/chat", {"model": model, "temperature": 0,
-                                   "messages": [{"role": "user", "content": content}]})
-        return raw["text"]  # TODO(backend): extract assistant text from the real response envelope
+        """Send images + prompt to /v1/responses.
+
+        Image format: data:image/jpeg;base64,... followed by the prompt text,
+        all as a single string in the "input" field.
+        """
+        image_parts = " ".join(f"data:image/jpeg;base64,{_b64(i)}" for i in images)
+        input_text = f"{image_parts} {prompt}".strip()
+        raw = self._post("/responses", {"model": model, "input": input_text})
+        return _extract_text(raw)
 
     def _with_retry(self, fn, *args, max_retries: int = 1, **kwargs):
         """Wrap a model call with retry on failure."""
@@ -89,18 +112,22 @@ class MetaClient:
 
     def segment(self, image: bytes, height: int = None, width: int = None) -> list[Segment]:
         """Segment an image and return normalized bounding boxes.
-        
+
         SAM 3.1 typically returns boxes in pixels (x, y, w, h).
         Normalize them to 0..1 based on image dimensions.
         If height/width not provided, try to read from image metadata.
         """
         import io
         from PIL import Image
-        
+
         def _do_segment():
-            raw = self._post("/segment", {"model": settings.meta_segment_model, "image": _b64(image)})
+            seg_prompt = ("data:image/jpeg;base64," + _b64(image) +
+                          " Segment this image. Return bounding boxes as JSON: "
+                          '[{"bbox": [x, y, w, h], "score": <0 to 1>}]')
+            raw = self._post("/responses", {"model": settings.meta_segment_model,
+                                            "input": seg_prompt})
             out = []
-            
+
             # Get image dimensions from the original image if not provided
             h, w = height, width
             if h is None or w is None:
@@ -110,26 +137,26 @@ class MetaClient:
                     h = h or img.height
                 except Exception:
                     pass
-            
-            for s in raw.get("segments", []):  # TODO(backend): real field names
-                segs = s.get("bbox", s)  # Handle both "bbox" and direct bbox format
-                score = s.get("score", s.get("confidence", 1.0))
-                polygon = s.get("polygon", s.get("points", None))
-                
-                # Normalize box from pixels to 0..1 if dimensions available
-                if w and h:
-                    x = float(segs[0]) / w if len(segs) > 0 else 0.0
-                    y = float(segs[1]) / h if len(segs) > 1 else 0.0
-                    bw = float(segs[2]) / w if len(segs) > 2 else 0.0
-                    bh = float(segs[3]) / h if len(segs) > 3 else 0.0
-                    bbox = {"x": x, "y": y, "w": bw, "h": bh}
-                else:
-                    # Assume already normalized or dict format
-                    bbox = segs if isinstance(segs, dict) else {"x": 0, "y": 0, "w": 0, "h": 0}
-                
-                out.append(Segment(bbox=bbox, score=score, polygon=polygon))
+
+            # Extract segments from the response text
+            text = _extract_text(raw)
+            m = re.search(r"\[[\s\S]*\]", text)
+            if m:
+                try:
+                    segs = json.loads(m.group(0))
+                    for s in segs:
+                        box = s.get("bbox", s)
+                        score = s.get("score", s.get("confidence", 1.0))
+                        if w and h:
+                            bbox = {"x": float(box[0]) / w, "y": float(box[1]) / h,
+                                    "w": float(box[2]) / w, "h": float(box[3]) / h}
+                        else:
+                            bbox = box if isinstance(box, dict) else {"x": 0, "y": 0, "w": 0, "h": 0}
+                        out.append(Segment(bbox=bbox, score=score, polygon=s.get("polygon", s.get("points", None))))
+                except (json.JSONDecodeError, IndexError, TypeError, ValueError):
+                    pass
             return out
-        
+
         return self._with_retry(_do_segment)
 
     def label(self, crop: bytes) -> Label:
@@ -159,26 +186,26 @@ class MetaClient:
 
     def _call_vision_llm(self, images: list[bytes], prompt: str, max_tokens: int = 400) -> str:
         """Call an open-weights vision model on Baseten or Modal.
-        
+
         Supports both Baseten and Modal request/response schemas.
         Baseten: POST {images, prompt, max_tokens, temperature} -> {text}
         Modal: POST {images, prompt, max_tokens, temperature} -> {output, text, or choices[0].text}
         """
         if not settings.vision_llm_url:
             raise ValueError("VISION_LLM_URL not configured")
-        
+
         payload = {
             "images": [_b64(i) for i in images],
             "prompt": prompt,
             "max_tokens": max_tokens,
             "temperature": 0,
         }
-        
+
         headers = {
             "Authorization": f"Api-Key {settings.vision_llm_key}",
             "Content-Type": "application/json",
         }
-        
+
         r = httpx.post(
             settings.vision_llm_url,
             json=payload,
@@ -187,7 +214,7 @@ class MetaClient:
         )
         r.raise_for_status()
         data = r.json()
-        
+
         # Extract text from various response formats
         if "text" in data:
             return data["text"]
@@ -205,7 +232,7 @@ class MetaClient:
                 if isinstance(val, str) and len(val) > 0:
                     return val
             raise ValueError(f"Could not extract text from response: {data}")
-    
+
     def _judge_with_retry(self, images: list[bytes], prompt: str, max_retries: int = 1) -> str:
         """Call judge model with retry on bad JSON."""
         for attempt in range(max_retries + 1):
@@ -220,7 +247,7 @@ class MetaClient:
                 # Retry with tighter prompt
                 prompt = prompt + "\n\nIMPORTANT: Return ONLY valid JSON, no other text."
         raise RuntimeError("Judge call failed after retries")
-    
+
     def judge(self, reference_crop, context_image, frames, label, quantity, location_hint, notes=None,
               scope="room") -> Judgement:
         """Reference matching: reference crop (+ wider baseline photo) vs walkthrough frames.
@@ -231,15 +258,15 @@ class MetaClient:
             location_hint=location_hint or "unknown",
             scope_line=SCOPE_OTHER if scope == "other_rooms" else SCOPE_ROOM,
             context_line="Image 2 is a wide photo showing where the item normally sits.\n" if context_image else "")
-        
+
         text = self._judge_with_retry(images, prompt)
         d = _parse_json(text)
-        
+
         # Validate required fields
         status = d.get("status", "not_visible")
         if status not in ("present", "not_visible", "missing"):
             status = "not_visible"
-        
+
         return Judgement(
             status=status,
             count_seen=int(d.get("count_seen", 0)),

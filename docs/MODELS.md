@@ -2,7 +2,16 @@
 
 Verify each model against the hackathon docs before writing real calls in `backend/app/services/models/meta.py`.
 
-| Model | Used for | Input (URL / base64 / both) | Video input? | Output shape | Rate limit | Notes |
+## Configuration
+
+- **API base URL**: `https://api.meta.ai/v1`
+- **Auth**: `Authorization: Bearer <META_API_KEY>`
+- **Endpoint**: `POST /responses` (appended to `meta_api_base` which already includes `/v1`)
+- **Image format**: `data:image/jpeg;base64,... <prompt text>` as a single string in `input`
+- **Response envelope**: `{"output": [{"type": "reasoning", "summary": [{"type": "summary_text", "text": "..."}]}]}`
+- **Model names**: `muse-image-1.0`, `muse-spark-1.3`, `sam-3.1`, `muse-wonder-1.0`
+
+| Model | Used for | Input | Video input? | Output shape | Rate limit | Notes |
 |---|---|---|---|---|---|---|
 | SAM 3.1 | find object regions | base64 image | No | List of {bbox: [x,y,w,h], score, polygon} in pixels | | Boxes returned in pixels, normalized to 0..1 |
 | Muse Image | name each crop | base64 image | No | {label, category, confidence, brand?, model?} | | Extracts brand/model when visible |
@@ -10,6 +19,8 @@ Verify each model against the hackathon docs before writing real calls in `backe
 | Open-weights VLM (Baseten/Modal) | audit judging | base64 images + prompt | No | {status, count_seen, evidence_frame, confidence, where?, at_usual_spot?, reason} | | Fallback for judge() |
 
 ## Real request and response examples
+
+Verified against the live Meta API at `https://api.meta.ai/v1/responses`.
 
 ### SAM 3.1 segmentation (mocked)
 ```json
@@ -22,17 +33,30 @@ Verify each model against the hackathon docs before writing real calls in `backe
 }
 ```
 
-### Muse Image labeling
+### Muse Image labeling — /responses request
 ```json
-// Request
 {
-  "model": "muse-image",
-  "temperature": 0,
-  "messages": [{"role": "user", "content": [{"type": "image", "data": "base64..."}, {"type": "text", "text": "Identify..."}]}]
+  "model": "muse-image-1.0",
+  "input": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD... Identify the single main object in this image. Return JSON only: {\"label\": \"...\", \"category\": \"...\", \"confidence\": <0 to 1>, \"brand\": null, \"model\": null}"
 }
+```
 
-// Response (extracted text)
+### Muse Image labeling — response (extracted text)
+```json
 {"label": "Samsung TV remote", "category": "remote", "confidence": 0.92, "brand": "Samsung", "model": null}
+```
+
+### Muse Spark — text-only /v1/responses request
+```json
+{
+  "model": "muse-spark-1.3",
+  "input": "Say hello in plain text, no emoji."
+}
+```
+
+### Muse Spark — response
+```json
+{"model": "muse-spark-1.3", "id": "resp_6ae853a5ffc2ebfdb3b5439a", "object": "response", "status": "completed", "output": [{"type": "reasoning", "summary": [{"type": "summary_text", "text": "Hello"}]}]}
 ```
 
 ## Credit budget
@@ -60,6 +84,13 @@ The prompt explicitly asks for brand and model fields when visible. These are ex
 - `brand`: The brand name (e.g., "Samsung", "Nespresso") or null
 - `model`: The model name (e.g., "Vertuo Plus") or null
 - If not visible, both fields are null
+
+### Response envelope parsing
+The /v1/responses endpoint returns an envelope with an `output` array. Each output item has a `type`:
+- `message`: contains `content` array with `output_text` items
+- `reasoning`: contains `summary` array with `summary_text` items
+
+Extract text by concatenating all `output_text` and `summary_text` values.
 
 ### Mock mode fallback
 When MOCK_MODELS=true (default), the MockClient provides deterministic fake responses. The NAMES table includes mock brand/model values for testing:
