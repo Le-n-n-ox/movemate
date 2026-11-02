@@ -18,6 +18,8 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 from app.config import settings
 from app.db import Base
+from app import models  # noqa: F401  import all models so Base.metadata is populated
+from app.services import usage  # noqa: F401  ensure ModelUsage is registered
 
 target_metadata = Base.metadata
 
