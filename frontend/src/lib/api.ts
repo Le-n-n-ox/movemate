@@ -3,8 +3,10 @@ import type * as T from "./types";
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
-  constructor(message: string, public status: number) {
+  status: number;
+  constructor(message: string, status: number) {
     super(message);
+    this.status = status;
   }
 }
 

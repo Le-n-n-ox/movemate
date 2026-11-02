@@ -2,12 +2,12 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Properties from "@/pages/Properties";
 import Property from "@/pages/Property";
 import Room from "@/pages/Room";
-import Guest from "@/pages/Guest";
-import Inspection from "@/pages/Inspection";
 import Cases from "@/pages/Cases";
 import CaseDetail from "@/pages/CaseDetail";
+import Inspection from "@/pages/Inspection";
 import Readiness from "@/pages/Readiness";
 import Audit from "@/pages/Audit";
+import Guest from "@/pages/Guest";
 
 export default function App() {
   return (
