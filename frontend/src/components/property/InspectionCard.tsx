@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-export function InspectionCard({ pid, recent, actor, setActor, hasRooms }: {
-  pid: string; recent: InspectionOut[]; actor: string; setActor: (v: string) => void; hasRooms: boolean;
+export function InspectionCard({ pid, recent, role, actor, setActor, hasRooms }: {
+  pid: string; recent: InspectionOut[]; role: "host" | "cleaner"; actor: string; setActor: (v: string) => void; hasRooms: boolean;
 }) {
   const nav = useNavigate();
   const [kind, setKind] = useState<InspectionKind>("after_checkout");
@@ -23,7 +23,7 @@ export function InspectionCard({ pid, recent, actor, setActor, hasRooms }: {
     setBusy(true);
     try {
       const i = await api.startInspection(pid, { kind, inspector: actor.trim(), reservation_ref: ref.trim() || undefined });
-      nav(`/inspection/${i.id}?role=host`);
+      nav(`/inspection/${i.id}?role=${role}`);
     } catch (e) { toast.error((e as Error).message); setBusy(false); }
   }
 
@@ -42,7 +42,7 @@ export function InspectionCard({ pid, recent, actor, setActor, hasRooms }: {
         <ul className="space-y-2 border-t pt-3">
           {recent.slice(0, 5).map((i) => (
             <li key={i.id}>
-              <Link to={`/inspection/${i.id}?role=host`} className="flex min-h-12 items-center justify-between gap-2 rounded-lg p-2 active:bg-accent">
+              <Link to={`/inspection/${i.id}?role=${role}`} className="flex min-h-12 items-center justify-between gap-2 rounded-lg p-2 active:bg-accent">
                 <span className="text-sm">
                   <span className="font-medium">{kindLabel(i.kind)}</span>
                   <span className="block text-xs text-muted-foreground">{i.inspector} · {new Date(i.created_at).toLocaleDateString()}</span>

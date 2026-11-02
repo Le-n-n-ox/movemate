@@ -19,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROUTERS = ROOT / "backend" / "app" / "routers"
 BACKEND_MAIN = ROOT / "backend" / "app" / "main.py"
-FRONTEND_API = ROOT / "frontend" / "lib" / "api.ts"
+FRONTEND_API = ROOT / "frontend" / "src" / "lib" / "api.ts"
 OUT = ROOT / "docs" / "API_GRAPH.mmd"
 
 DQ = chr(34)  # "

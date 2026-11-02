@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Building2, FlaskConical, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -14,6 +14,8 @@ import { AppearanceCard } from "@/components/AppearanceCard";
 
 export default function Properties() {
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get("role") === "cleaner" ? "cleaner" : "host";
   const list = useAsync(api.listProperties);
   const health = useAsync(api.health);
   const [busy, setBusy] = useState(false);
@@ -32,7 +34,7 @@ export default function Properties() {
         capacity: f.capacity ? Number(f.capacity) : undefined,
       });
       toast.success("Property created");
-      nav(`/properties/${p.id}`);
+      nav(`/properties/${p.id}?role=${role}`);
     } catch (err) { toast.error((err as Error).message); }
     finally { setBusy(false); }
   }
@@ -42,7 +44,7 @@ export default function Properties() {
     try {
       const r = await api.seed();
       toast.success("Demo data loaded");
-      nav(`/properties/${r.property_id}`);
+      nav(`/properties/${r.property_id}?role=${role}`);
     } catch (err) { toast.error((err as Error).message); }
     finally { setBusy(false); }
   }
@@ -63,7 +65,7 @@ export default function Properties() {
           <EmptyState icon={<Building2 className="size-8" />} title="No properties yet" hint="Add your first home below." />
         )}
         {list.data?.map((p) => (
-          <Link key={p.id} to={`/properties/${p.id}`} className="block">
+          <Link key={p.id} to={`/properties/${p.id}?role=${role}`} className="block">
             <Card className="gap-1 p-4 transition-colors active:bg-accent">
               <p className="text-lg font-semibold">{p.name}</p>
               <p className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">

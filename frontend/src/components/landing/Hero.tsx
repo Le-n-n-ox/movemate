@@ -1,9 +1,22 @@
 import { motion } from "motion/react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AlertTriangle, ArrowRight, Check, Sparkles } from "lucide-react";
-import { LinkButton, HashButton } from "@/components/LinkButton";
+import { HashButton } from "@/components/LinkButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function LandingHeader() {
+  const [openRolePicker, setOpenRolePicker] = useState(false);
+  const [guestToken, setGuestToken] = useState("");
+  const navigate = useNavigate();
+  const pick = (role: "host" | "cleaner" | "guest") => {
+    setOpenRolePicker(false);
+    if (role === "guest") {
+      if (guestToken.trim()) navigate(`/g/${guestToken.trim()}`);
+      return;
+    }
+    navigate(`/properties?role=${role}`);
+  };
   return (
     <header className="glass sticky z-40" style={{ top: "env(safe-area-inset-top, 0px)" }}>
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-2">
@@ -17,9 +30,22 @@ export function LandingHeader() {
         </nav>
         <div className="flex items-center gap-1">
           <ThemeToggle />
-          <LinkButton to="/properties" className="w-auto">Open app</LinkButton>
+          <button onClick={() => setOpenRolePicker(true)} className="inline-flex min-h-12 w-auto items-center justify-center gap-2 rounded-lg bg-primary px-4 text-base font-medium text-primary-foreground shadow-xs transition-colors hover:opacity-90 active:scale-[0.98]">Open app</button>
         </div>
       </div>
+      {openRolePicker && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={() => setOpenRolePicker(false)}>
+          <div className="w-full max-w-sm space-y-3 rounded-2xl border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold">Sign in as</h2>
+            <p className="text-sm text-muted-foreground">Choose your role to continue.</p>
+            <button onClick={() => pick("host")} className="w-full rounded-lg bg-primary px-4 py-3 font-medium text-primary-foreground">Host</button>
+            <button onClick={() => pick("cleaner")} className="w-full rounded-lg border px-4 py-3 font-medium">Cleaner</button>
+            <input value={guestToken} onChange={(e) => setGuestToken(e.target.value)} placeholder="Guest link token" className="w-full rounded-lg border px-4 py-3" />
+            <button onClick={() => pick("guest")} className="w-full rounded-lg border px-4 py-3 font-medium">Guest</button>
+            <button onClick={() => setOpenRolePicker(false)} className="w-full text-sm text-muted-foreground">Cancel</button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
@@ -75,6 +101,17 @@ function PhoneMock() {
 }
 
 export function Hero() {
+  const [openRolePicker, setOpenRolePicker] = useState(false);
+  const [guestToken, setGuestToken] = useState("");
+  const navigate = useNavigate();
+  const pick = (role: "host" | "cleaner" | "guest") => {
+    setOpenRolePicker(false);
+    if (role === "guest") {
+      if (guestToken.trim()) navigate(`/g/${guestToken.trim()}`);
+      return;
+    }
+    navigate(`/properties?role=${role}`);
+  };
   return (
     <section id="top" className="relative isolate overflow-hidden">
       <div className="bg-grid absolute inset-0 -z-10" aria-hidden />
@@ -103,12 +140,25 @@ export function Hero() {
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}
             className="flex max-w-md flex-col gap-3 sm:flex-row"
           >
-            <LinkButton to="/properties">Open the app <ArrowRight className="size-5" /></LinkButton>
+            <button onClick={() => setOpenRolePicker(true)} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-base font-medium text-primary-foreground shadow-xs transition-colors hover:opacity-90 active:scale-[0.98] sm:w-auto">Open the app <ArrowRight className="size-5" /></button>
             <HashButton href="#how" variant="outline">See how it works</HashButton>
           </motion.div>
         </div>
         <PhoneMock />
       </div>
+      {openRolePicker && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={() => setOpenRolePicker(false)}>
+          <div className="w-full max-w-sm space-y-3 rounded-2xl border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold">Sign in as</h2>
+            <p className="text-sm text-muted-foreground">Choose your role to continue.</p>
+            <button onClick={() => pick("host")} className="w-full rounded-lg bg-primary px-4 py-3 font-medium text-primary-foreground">Host</button>
+            <button onClick={() => pick("cleaner")} className="w-full rounded-lg border px-4 py-3 font-medium">Cleaner</button>
+            <input value={guestToken} onChange={(e) => setGuestToken(e.target.value)} placeholder="Guest link token" className="w-full rounded-lg border px-4 py-3" />
+            <button onClick={() => pick("guest")} className="w-full rounded-lg border px-4 py-3 font-medium">Guest</button>
+            <button onClick={() => setOpenRolePicker(false)} className="w-full text-sm text-muted-foreground">Cancel</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

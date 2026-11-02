@@ -90,12 +90,16 @@ class MetaClient:
     def _chat(self, model: str, images: list[bytes], prompt: str) -> str:
         """Send images + prompt to /v1/responses.
 
-        Image format: data:image/jpeg;base64,... followed by the prompt text,
-        all as a single string in the "input" field.
+        Images are sent as structured ``input_image`` content parts (the format
+        the gateway requires); the prompt is an ``input_text`` part. Inlining
+        base64 into the text field is rejected by vision-capable models here.
         """
-        image_parts = " ".join(f"data:image/jpeg;base64,{_b64(i)}" for i in images)
-        input_text = f"{image_parts} {prompt}".strip()
-        raw = self._post("/responses", {"model": model, "input": input_text})
+        content = []
+        for img in images or []:
+            content.append({"type": "input_image", "image_url": f"data:image/jpeg;base64,{_b64(img)}"})
+        content.append({"type": "input_text", "text": prompt})
+        raw = self._post("/responses", {"model": model,
+                                       "input": [{"role": "user", "content": content}]})
         return _extract_text(raw)
 
     def _with_retry(self, fn, *args, max_retries: int = 1, **kwargs):
@@ -121,11 +125,18 @@ class MetaClient:
         from PIL import Image
 
         def _do_segment():
-            seg_prompt = ("data:image/jpeg;base64," + _b64(image) +
-                          " Segment this image. Return bounding boxes as JSON: "
-                          '[{"bbox": [x, y, w, h], "score": <0 to 1>}]')
-            raw = self._post("/responses", {"model": settings.meta_segment_model,
-                                            "input": seg_prompt})
+            content = [{"type": "input_image", "image_url": f"data:image/jpeg;base64,{_b64(image)}"},
+                       {"type": "input_text", "text": ("Identify each distinct object in this image and return its "
+                                                      "bounding box. Return JSON only: an array of objects "
+                                                      '{"label": "...", "bbox": [x, y, w, h], "score": 0.9} '
+                                                      "where bbox is in PIXELS (x, y, width, height) relative "
+                                                      "to the image. If none, return [].")}]
+
+            # sam-3.1 returns no text boxes via this gateway, so fall back to the
+            # vision-capable reasoning model, which does return usable boxes.
+            segment_model = settings.meta_reason_model
+            raw = self._post("/responses", {"model": segment_model,
+                                            "input": [{"role": "user", "content": content}]})
             out = []
 
             # Get image dimensions from the original image if not provided
@@ -161,7 +172,7 @@ class MetaClient:
 
     def label(self, crop: bytes) -> Label:
         def _do_label():
-            d = _parse_json(self._chat(settings.meta_label_model, [crop], LABEL_PROMPT))
+            d = _parse_json(self._chat(settings.meta_reason_model, [crop], LABEL_PROMPT))
             return Label(
                 label=d["label"],
                 category=d.get("category"),

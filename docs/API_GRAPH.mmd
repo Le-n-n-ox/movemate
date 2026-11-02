@@ -10,34 +10,34 @@ graph LR
     F_createProperty["createProperty"]:::frontend
     F_getProperty["getProperty"]:::frontend
     F_patchProperty["patchProperty"]:::frontend
+    F_listRooms["listRooms"]:::frontend
     F_createRoom["createRoom"]:::frontend
     F_getRoom["getRoom"]:::frontend
     F_patchRoom["patchRoom"]:::frontend
     F_listLocations["listLocations"]:::frontend
-    F_roomPhoto["roomPhoto"]:::frontend
+    F_uploadRoomPhoto["uploadRoomPhoto"]:::frontend
     F_baselinePhoto["baselinePhoto"]:::frontend
     F_baselineVideo["baselineVideo"]:::frontend
     F_listItems["listItems"]:::frontend
+    F_createItem["createItem"]:::frontend
     F_patchItem["patchItem"]:::frontend
     F_deleteItem["deleteItem"]:::frontend
-    F_createItem["createItem"]:::frontend
+    F_confirmAll["confirmAll"]:::frontend
     F_setCondition["setCondition"]:::frontend
     F_itemHistory["itemHistory"]:::frontend
-    F_confirmAll["confirmAll"]:::frontend
-    F_guestProperty["guestProperty"]:::frontend
+    F_guest["guest"]:::frontend
     F_guestAsk["guestAsk"]:::frontend
     F_createAudit["createAudit"]:::frontend
-    F_uploadAuditVideo["uploadAuditVideo"]:::frontend
-    F_uploadAuditFrames["uploadAuditFrames"]:::frontend
     F_runAudit["runAudit"]:::frontend
     F_getAudit["getAudit"]:::frontend
-    F_createInspection["createInspection"]:::frontend
+    F_patchFinding["patchFinding"]:::frontend
+    F_startInspection["startInspection"]:::frontend
     F_listInspections["listInspections"]:::frontend
     F_getInspection["getInspection"]:::frontend
     F_patchInspectionItem["patchInspectionItem"]:::frontend
     F_inspectionItemPhoto["inspectionItemPhoto"]:::frontend
-    F_patchCleaningCheck["patchCleaningCheck"]:::frontend
-    F_importAiSuggestions["importAiSuggestions"]:::frontend
+    F_patchCleaning["patchCleaning"]:::frontend
+    F_applyAiHints["applyAiHints"]:::frontend
     F_completeInspection["completeInspection"]:::frontend
     F_readiness["readiness"]:::frontend
     F_listCases["listCases"]:::frontend
@@ -45,7 +45,6 @@ graph LR
     F_patchCase["patchCase"]:::frontend
     F_addCaseEvent["addCaseEvent"]:::frontend
     F_resolveCase["resolveCase"]:::frontend
-    F_patchFinding["patchFinding"]:::frontend
 
     %% Backend routes (unique id per method + path)
     B_POST__api_properties_property_id_audits["POST /api/properties/{property_id}/audits"]:::backend
@@ -83,6 +82,8 @@ graph LR
     B_GET__health["GET /health"]:::backend
     B_GET__models["GET /models"]:::backend
     B_GET__v1_models["GET /v1/models"]:::backend
+    B_GET__api_usage["GET /api/usage"]:::backend
+    B_POST__api_cleanup["POST /api/cleanup"]:::backend
     B_POST__api_properties["POST /api/properties"]:::backend
     B_GET__api_properties["GET /api/properties"]:::backend
     B_GET__api_properties_property_id["GET /api/properties/{property_id}"]:::backend
@@ -100,8 +101,6 @@ graph LR
     ROOT["(root)"]:::prefix
 
     F_createAudit -->|req()| B_POST__api_properties_property_id_audits
-    F_uploadAuditVideo -->|req()| B_POST__api_audits_audit_id_rooms_room_id_video
-    F_uploadAuditFrames -->|req()| B_POST__api_audits_audit_id_rooms_room_id_frames
     F_runAudit -->|req()| B_POST__api_audits_audit_id_run
     F_getAudit -->|req()| B_GET__api_audits_audit_id
     F_patchFinding -->|req()| B_PATCH__api_findings_finding_id
@@ -113,17 +112,17 @@ graph LR
     F_patchCase -->|req()| B_PATCH__api_discrepancies_case_id
     F_addCaseEvent -->|req()| B_POST__api_discrepancies_case_id_events
     F_resolveCase -->|req()| B_POST__api_discrepancies_case_id_resolve
-    F_guestProperty -->|req()| B_GET__api_guest_token
+    F_guest -->|req()| B_GET__api_guest_token
     F_guestAsk -->|req()| B_POST__api_guest_token_ask
-    F_createInspection -->|req()| B_POST__api_properties_property_id_inspections
+    F_startInspection -->|req()| B_POST__api_properties_property_id_inspections
     F_listInspections -->|req()| B_POST__api_properties_property_id_inspections
-    F_createInspection -->|req()| B_GET__api_properties_property_id_inspections
+    F_startInspection -->|req()| B_GET__api_properties_property_id_inspections
     F_listInspections -->|req()| B_GET__api_properties_property_id_inspections
     F_getInspection -->|req()| B_GET__api_inspections_inspection_id
     F_patchInspectionItem -->|req()| B_PATCH__api_inspection_items_ii_id
     F_inspectionItemPhoto -->|req()| B_POST__api_inspection_items_ii_id_photo
-    F_patchCleaningCheck -->|req()| B_PATCH__api_cleaning_checks_check_id
-    F_importAiSuggestions -->|req()| B_POST__api_inspections_inspection_id_ai_suggestions
+    F_patchCleaning -->|req()| B_PATCH__api_cleaning_checks_check_id
+    F_applyAiHints -->|req()| B_POST__api_inspections_inspection_id_ai_suggestions
     F_completeInspection -->|req()| B_POST__api_inspections_inspection_id_complete
     F_readiness -->|req()| B_GET__api_inspections_inspection_id_readiness
     F_createItem -->|req()| B_GET__api_rooms_room_id_items
@@ -146,14 +145,20 @@ graph LR
     F_patchProperty -->|req()| B_GET__api_properties_property_id
     F_getProperty -->|req()| B_PATCH__api_properties_property_id
     F_patchProperty -->|req()| B_PATCH__api_properties_property_id
+    F_listRooms -->|req()| B_POST__api_properties_property_id_rooms
     F_createRoom -->|req()| B_POST__api_properties_property_id_rooms
+    F_listRooms -->|req()| B_GET__api_properties_property_id_rooms
     F_createRoom -->|req()| B_GET__api_properties_property_id_rooms
     F_getRoom -->|req()| B_GET__api_rooms_room_id
     F_patchRoom -->|req()| B_GET__api_rooms_room_id
     F_getRoom -->|req()| B_PATCH__api_rooms_room_id
     F_patchRoom -->|req()| B_PATCH__api_rooms_room_id
     F_listLocations -->|req()| B_GET__api_rooms_room_id_locations
-    F_roomPhoto -->|req()| B_POST__api_rooms_room_id_photo
+    F_uploadRoomPhoto -->|req()| B_POST__api_rooms_room_id_photo
+    API_PREFIX -->|mounts| B_POST__api_audits_audit_id_rooms_room_id_video
+    API_PREFIX -->|mounts| B_POST__api_audits_audit_id_rooms_room_id_frames
     API_PREFIX -->|mounts| B_POST__api_seed
     API_PREFIX -->|mounts| B_GET__api_properties_property_id_discrepancies
+    API_PREFIX -->|mounts| B_GET__api_usage
+    API_PREFIX -->|mounts| B_POST__api_cleanup
     API_PREFIX -->|mounts| B_GET__api_rooms_room_id_sheet

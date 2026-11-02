@@ -19,7 +19,7 @@ import { InsightsCard } from "@/components/property/InsightsCard";
 export default function Property() {
     const { id = "" } = useParams();
     const nav = useNavigate();
-    const { actor, setActor } = useRole();
+    const { role, actor, setActor } = useRole();
     const p = useAsync(() => api.getProperty(id), [id]);
     const insp = useAsync(() => api.listInspections(id), [id]);
     const [busy, setBusy] = useState(false);
@@ -28,7 +28,7 @@ export default function Property() {
         setBusy(true);
         try {
             const a = await api.createAudit(id);
-            nav(`/audit/${a.id}?role=host`);
+            nav(`/audit/${a.id}?role=${role}`);
         } catch (e) { toast.error((e as Error).message); setBusy(false); }
     }
 
@@ -43,9 +43,9 @@ export default function Property() {
                     <RoomsCard pid={id} rooms={d.rooms} onChanged={() => p.refresh(true)} />
                     <InsightsCard rooms={d.rooms} />
                     <InspectionCard
-                        pid={id} recent={insp.data ?? []} actor={actor} setActor={setActor} hasRooms={d.rooms.length > 0}
+                        pid={id} recent={insp.data ?? []} role={role} actor={actor} setActor={setActor} hasRooms={d.rooms.length > 0}
                     />
-                    <Link to={`/properties/${id}/cases?role=host`} className="block">
+                    <Link to={`/properties/${id}/cases?role=${role}`} className="block">
                         <Card className="flex-row items-center justify-between p-4 active:bg-accent">
                             <span className="flex items-center gap-2 font-semibold"><FolderOpen className="size-5 text-primary" aria-hidden /> Cases</span>
                             <Pill tone={d.open_discrepancies > 0 ? "danger" : "neutral"}>{d.open_discrepancies} open</Pill>
@@ -58,7 +58,7 @@ export default function Property() {
                             {busy ? "Starting..." : "Start AI video check"}
                         </Button>
                         {d.latest_audit_id && (
-                            <LinkButton variant="outline" to={`/audit/${d.latest_audit_id}?role=host`}>
+                            <LinkButton variant="outline" to={`/audit/${d.latest_audit_id}?role=${role}`}>
                                 Open latest check
                             </LinkButton>
                         )}

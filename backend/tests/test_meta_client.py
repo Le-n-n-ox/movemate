@@ -150,9 +150,16 @@ def test_judge_retries_meta_response_with_all_inline_images(monkeypatch):
 
     assert result.status == "not_visible"
     assert len(payloads) == 2
+    payload_input = payloads[1]["input"]
+    # New structured format: a list with a user message whose content parts
+    # carry the images as data URLs plus the (retry-augmented) prompt text.
+    assert isinstance(payload_input, list)
+    content = payload_input[0]["content"]
+    image_urls = [part["image_url"] for part in content if part.get("type") == "input_image"]
     for image in images:
-        assert f"data:image/jpeg;base64,{base64.b64encode(image).decode()}" in payloads[1]["input"]
-    assert "IMPORTANT: Return ONLY valid JSON" in payloads[1]["input"]
+        assert f"data:image/jpeg;base64,{base64.b64encode(image).decode()}" in image_urls
+    prompt_texts = " ".join(part.get("text", "") for part in content if part.get("type") == "input_text")
+    assert "IMPORTANT: Return ONLY valid JSON" in prompt_texts
 
 
 def test_judge_raises_after_invalid_json_retry(monkeypatch):
