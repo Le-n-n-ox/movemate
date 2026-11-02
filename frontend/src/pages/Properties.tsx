@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AppearanceCard } from "@/components/AppearanceCard";
 
 export default function Properties() {
   const nav = useNavigate();
@@ -97,6 +98,8 @@ export default function Properties() {
           <FlaskConical className="size-5" /> Load demo data (dev)
         </Button>
       )}
+
+      <AppearanceCard />
     </Shell>
   );
 }

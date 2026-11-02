@@ -1,0 +1,114 @@
+import { motion } from "motion/react";
+import { AlertTriangle, ArrowRight, Check, Sparkles } from "lucide-react";
+import { LinkButton, HashButton } from "@/components/LinkButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
+
+export function LandingHeader() {
+  return (
+    <header className="glass sticky z-40" style={{ top: "env(safe-area-inset-top, 0px)" }}>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-2">
+        <a href="#top" className="flex min-h-12 items-center gap-2 font-bold">
+          <img src="/icon.svg" alt="" className="size-8 rounded-lg" /> MoveMate
+        </a>
+        <nav className="hidden items-center gap-6 text-sm font-medium sm:flex" aria-label="Sections">
+          <a href="#features" className="hover:text-primary">Features</a>
+          <a href="#how" className="hover:text-primary">How it works</a>
+          <a href="#roles" className="hover:text-primary">Who it is for</a>
+        </nav>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <LinkButton to="/properties" className="w-auto">Open app</LinkButton>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+const ROWS = [
+  { room: "Living room", note: "All items checked", Icon: Check, tone: "bg-ok/15 text-ok" },
+  { room: "Kitchen", note: "1 case, cleaner found it", Icon: AlertTriangle, tone: "bg-warn/20 text-amber-800 dark:text-amber-300" },
+  { room: "Bathroom", note: "Low stock: toilet paper", Icon: AlertTriangle, tone: "bg-warn/20 text-amber-800 dark:text-amber-300" },
+];
+
+function PhoneMock() {
+  return (
+    <div className="relative mx-auto w-full max-w-[19rem]" aria-hidden>
+      <div className="animate-float rounded-[2.5rem] border-[10px] border-foreground/90 bg-background p-4 shadow-2xl dark:border-foreground/30">
+        <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-muted" />
+        <div className="space-y-3">
+          <div className="rounded-2xl bg-warn/20 p-4 text-center">
+            <p className="text-xs text-muted-foreground">Readiness</p>
+            <p className="text-xl font-extrabold">Ready with exceptions</p>
+          </div>
+          {ROWS.map(({ room, note, Icon, tone }, i) => (
+            <motion.div
+              key={room}
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 + i * 0.15, duration: 0.4 }}
+              className="flex items-center gap-3 rounded-xl border bg-card p-3"
+            >
+              <span className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
+                <Icon className="size-4" />
+              </span>
+              <span className="min-w-0 text-sm">
+                <span className="block font-semibold">{room}</span>
+                <span className="block truncate text-xs text-muted-foreground">{note}</span>
+              </span>
+            </motion.div>
+          ))}
+          <div className="grid place-items-center pt-1">
+            <span className="grid size-10 animate-pulse-ring place-items-center rounded-full bg-primary text-primary-foreground">
+              <Check className="size-5" />
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="animate-float-slow absolute -left-6 top-24 hidden rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-lg sm:block">
+        Cleaner says it was found
+      </div>
+      <div className="animate-float absolute -right-6 bottom-20 hidden rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-lg sm:block">
+        Host to review
+      </div>
+    </div>
+  );
+}
+
+export function Hero() {
+  return (
+    <section id="top" className="relative isolate overflow-hidden">
+      <div className="bg-grid absolute inset-0 -z-10" aria-hidden />
+      <div className="animate-float-slow absolute left-1/2 top-0 -z-10 size-[28rem] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" aria-hidden />
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-14 lg:grid-cols-2 lg:py-24">
+        <div className="space-y-6">
+          <motion.p
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-sm font-medium"
+          >
+            <Sparkles className="size-4 text-primary" aria-hidden /> Built for short-term rental hosts
+          </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
+            className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl"
+          >
+            Know your home is <span className="text-gradient animate-gradient">ready</span> before the next guest arrives.
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
+            className="max-w-xl text-lg text-muted-foreground"
+          >
+            Scan your home once. Check it after every stay. See clearly what is wrong and whether it is ready.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}
+            className="flex max-w-md flex-col gap-3 sm:flex-row"
+          >
+            <LinkButton to="/properties">Open the app <ArrowRight className="size-5" /></LinkButton>
+            <HashButton href="#how" variant="outline">See how it works</HashButton>
+          </motion.div>
+        </div>
+        <PhoneMock />
+      </div>
+    </section>
+  );
+}

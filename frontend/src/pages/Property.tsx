@@ -14,7 +14,7 @@ import { RoomsCard } from "@/components/property/RoomsCard";
 import { InspectionCard } from "@/components/property/InspectionCard";
 import { GuestLinkCard } from "@/components/property/GuestLinkCard";
 import { LinkButton } from "@/components/LinkButton";
-
+import { InsightsCard } from "@/components/property/InsightsCard";
 
 export default function Property() {
     const { id = "" } = useParams();
@@ -41,6 +41,7 @@ export default function Property() {
                 <>
                     <DetailsCard key={d.id + (d.rules ?? "")} property={d} onSaved={() => p.refresh(true)} />
                     <RoomsCard pid={id} rooms={d.rooms} onChanged={() => p.refresh(true)} />
+                    <InsightsCard rooms={d.rooms} />
                     <InspectionCard
                         pid={id} recent={insp.data ?? []} actor={actor} setActor={setActor} hasRooms={d.rooms.length > 0}
                     />

@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CapturePhase } from "@/components/audit/CapturePhase";
 import { FindingCard } from "@/components/audit/FindingCard";
+import { FindingsChart } from "@/components/audit/FindingsChart";
 
 export default function Audit() {
   const { auditId = "" } = useParams();
@@ -68,6 +69,7 @@ export default function Audit() {
             <p className="text-lg font-semibold">{summaryLine(a.findings, a.summary)}</p>
             <p className="text-sm text-muted-foreground">Open ones first. Closed ones stay as the record.</p>
           </Card>
+          <FindingsChart findings={a.findings} />
           {a.findings.length === 0 && <EmptyState title="Nothing to review" hint="Everything we checked looked as expected." />}
           {sortFindings(a.findings).map((f) => (
             <FindingCard key={`${f.id}-${f.resolution}-${f.note ?? ""}`} f={f} role={role} roomName={roomName(f.room_id)} onChanged={refresh} />

@@ -3,25 +3,29 @@ import { AlertTriangle, ChevronLeft, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { PageTransition } from "@/components/motion/PageTransition";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
-<main id="main" className="page"></main>
 
 export function Shell({ title, back, backLabel = "Back", right, children }: {
   title: string; back?: string; backLabel?: string; right?: ReactNode; children: ReactNode;
 }) {
   return (
-    <main className="page">
+    <main id="main" className="page">
       <header className="no-print flex items-center justify-between gap-2">
         {back ? (
           <Link to={back} className="inline-flex min-h-12 items-center gap-1 text-sm font-medium text-primary">
             <ChevronLeft className="size-5" aria-hidden /> {backLabel}
           </Link>
         ) : <span />}
-        {right}
+        <div className="flex items-center gap-1">
+          {right}
+          <ThemeToggle />
+        </div>
       </header>
       <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-      {children}
+      <PageTransition className="space-y-4">{children}</PageTransition>
     </main>
   );
 }
