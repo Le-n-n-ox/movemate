@@ -34,9 +34,9 @@ export default function Audit() {
       title="AI video check" back={pid ? `/properties/${pid}` : "/properties"} backLabel="Property"
       right={health.data?.mock_models ? <Pill tone="warn">Demo mode</Pill> : undefined}
     >
-      <p className="flex items-start gap-2 text-sm text-muted-foreground">
-        <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
-        This check only suggests. A person decides what is real.
+      <p className="flex items-start gap-2 rounded-lg border border-info/30 bg-info/10 p-3 text-sm text-muted-foreground">
+        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
+        <span>This check only suggests. A person decides what is real.</span>
       </p>
       <RoleBar role={role} actor={actor} onActor={setActor} />
       {isHost && (
@@ -45,20 +45,18 @@ export default function Audit() {
         </Button>
       )}
 
-      {audit.loading && [0, 1].map((i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+      {audit.loading && <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}</div>}
       {audit.error && <ErrorNote message={audit.error} onRetry={() => audit.refresh()} />}
 
-      {a && (a.status === "draft" || a.status === "failed") && (
-        <CapturePhase
-          auditId={a.id} rooms={rooms} uploaded={a.rooms_uploaded}
-          failedStage={a.status === "failed" ? (a.stage ?? "Something went wrong.") : null} onChanged={refresh}
-        />
+      {(a?.status === "draft" || a?.status === "failed") && (
+        <CapturePhase auditId={a.id} rooms={rooms} uploaded={a.rooms_uploaded}
+          failedStage={a.status === "failed" ? (a.stage ?? "Something went wrong.") : null} onChanged={refresh} />
       )}
 
       {a?.status === "running" && (
         <Card className="items-center gap-3 p-6 text-center" role="status" aria-live="polite">
           <Loader2 className="size-8 animate-spin text-primary" aria-hidden />
-          <p className="text-lg font-semibold">{a.stage ?? "Starting the check..."}</p>
+          <p className="text-lg font-semibold">{a.stage ?? "Starting the check…"}</p>
           <p className="text-sm text-muted-foreground">This can take a minute or two. You can leave this page open.</p>
         </Card>
       )}
@@ -74,7 +72,7 @@ export default function Audit() {
           {sortFindings(a.findings).map((f) => (
             <FindingCard key={`${f.id}-${f.resolution}-${f.note ?? ""}`} f={f} role={role} roomName={roomName(f.room_id)} onChanged={refresh} />
           ))}
-          <Button variant="outline" className="no-print btn-tap w-full"
+          <Button variant="outline" className="no-print btn-tap w-full mt-4"
             onClick={() => copyText(plainSummary(a.findings, a.summary), "Summary copied")}>
             <Copy className="size-5" /> Copy summary
           </Button>

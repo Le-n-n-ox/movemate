@@ -2,42 +2,53 @@ import { test, expect } from "@playwright/test";
 
 const API = "http://localhost:8000";
 
-async function seed({ request }) {
-  const res = await request.post(`${API}/dev/seed`);
+async function seed(page: any) {
+  const res = await page.request.post(`${API}/api/dev/seed`);
   expect(res.ok()).toBeTruthy();
   return (await res.json()) as { property_id: string };
 }
 
-async function json<T>(request, path: string): Promise<T> {
-  const res = await request.get(`${API}${path}`);
+async function json<T>(page: any, path: string): Promise<T> {
+  const res = await page.request.get(`${API}/api${path}`);
   expect(res.ok()).toBeTruthy();
   return (await res.json()) as T;
 }
 
-test("screenshot every screen at 375 px", async ({ request, page }) => {
-  const { property_id } = await seed(request);
+test("screenshot every screen at 375 px", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
 
-  const property: any = await json(request, `/properties/${property_id}`);
+  const { property_id } = await seed(page);
+
+  const property: any = await json(page, `/properties/${property_id}`);
   const room_id = property.rooms?.[0]?.id;
   const audit_id = property.latest_audit_id;
   const inspection_id = property.latest_inspection_id;
 
-  const inspections: any = await json(request, `/properties/${property_id}/inspections`);
+  // Create an audit so the audit screen can be screenshot.
+  let created_audit_id: string | null = null;
+  if (property_id) {
+    const ar = await page.request.post(`${API}/api/properties/${property_id}/audits`);
+    if (ar.ok()) created_audit_id = (await ar.json()) as { id: string };
+  }
+
+  const inspections: any = await json(page, `/properties/${property_id}/inspections`);
   const inspection_for_readiness = inspections[0]?.id ?? inspection_id;
 
-  const cases: any = await json(request, `/properties/${property_id}/discrepancies`);
+  const cases: any = await json(page, `/properties/${property_id}/discrepancies`);
   const case_id = cases[0]?.id;
 
   const screens: Array<{ name: string; path: string }> = [
+    { name: "00-landing", path: "/" },
     { name: "01-properties", path: "/properties" },
     { name: "02-property", path: `/properties/${property_id}` },
     ...(room_id ? [{ name: "03-room", path: `/properties/${property_id}/rooms/${room_id}` }] : []),
-    ...(inspection_id ? [{ name: "04-inspection", path: `/inspection/${inspection_id}` }] : []),
-    ...(inspection_for_readiness ? [{ name: "05-readiness", path: `/inspection/${inspection_for_readiness}/readiness` }] : []),
-    ...(case_id ? [{ name: "06-cases", path: `/properties/${property_id}/cases` }] : []),
-    ...(case_id ? [{ name: "07-case-detail", path: `/cases/${case_id}` }] : []),
-    { name: "08-guest", path: "/g/demo-guest" },
-    { name: "00-landing", path: "/" },
+    ...(created_audit_id ? [{ name: "04-audit", path: `/audit/${created_audit_id}` }] : []),
+    ...(inspection_id ? [{ name: "05-inspection", path: `/inspection/${inspection_id}` }] : []),
+    ...(inspection_for_readiness ? [{ name: "06-readiness", path: `/inspection/${inspection_for_readiness}/readiness` }] : []),
+    ...(case_id ? [{ name: "07-cases", path: `/properties/${property_id}/cases` }] : []),
+    ...(case_id ? [{ name: "08-case-detail", path: `/cases/${case_id}` }] : []),
+    { name: "09-guest", path: "/g/demo-guest" },
   ];
 
   for (const screen of screens) {
