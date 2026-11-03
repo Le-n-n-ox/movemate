@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -37,8 +37,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: "Figtree", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", "Inter", ui-serif, Georgia, serif;
 }
 
 /* Motion tokens: use as animate-float, animate-gradient, ... */
@@ -76,32 +76,32 @@
   --radius: 0.875rem;
 
   /* surfaces: cool, clean, a little seafoam so white cards lift off the page */
-  --background: oklch(0.975 0.012 195);
-  --foreground: oklch(0.22 0.035 215);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.035 215);
+  --background: #FAF8F4;
+  --foreground: #14211F;
+  --card: #FFFFFF;
+  --card-foreground: #14211F;
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.22 0.035 215);
 
   /* deeper teal so white button text clears contrast */
-  --primary: oklch(0.54 0.115 188);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.95 0.018 195);
-  --secondary-foreground: oklch(0.3 0.04 210);
-  --muted: oklch(0.95 0.012 195);
-  --muted-foreground: oklch(0.46 0.03 210);
-  --accent: oklch(0.93 0.045 188);
-  --accent-foreground: oklch(0.28 0.06 200);
+  --primary: #0F6E66;
+  --primary-foreground: #FAF8F4;
+  --secondary: #F0ECE4;
+  --secondary-foreground: #14211F;
+  --muted: #F0ECE4;
+  --muted-foreground: #6B6560;
+  --accent: #E8E2D8;
+  --accent-foreground: #14211F;
   --destructive: oklch(0.577 0.245 27.3);
-  --border: oklch(0.9 0.016 195);
-  --input: oklch(0.86 0.02 195);
-  --ring: oklch(0.54 0.115 188);
+  --border: #E5DFD5;
+  --input: #E5DFD5;
+  --ring: #0F6E66;
 
   /* red = missing, amber = count/unverified, blue = AI hint, green = ready */
-  --danger: oklch(0.577 0.245 27.3);
-  --warn: oklch(0.75 0.16 75);
+  --danger: #B03A2E;
+  --warn: #B8860B;
   --info: oklch(0.55 0.16 250);
-  --ok: oklch(0.62 0.16 150);
+  --ok: #2F7A5A;
 
   --chart-1: oklch(0.54 0.115 188);
   --chart-2: oklch(0.62 0.16 150);
@@ -117,28 +117,28 @@
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.17 0.025 210);
-  --foreground: oklch(0.96 0.006 195);
-  --card: oklch(0.22 0.027 210);
-  --card-foreground: oklch(0.96 0.006 195);
-  --popover: oklch(0.22 0.027 210);
-  --popover-foreground: oklch(0.96 0.006 195);
-  --primary: oklch(0.74 0.12 186);
-  --primary-foreground: oklch(0.15 0.025 210);
-  --secondary: oklch(0.27 0.027 210);
-  --secondary-foreground: oklch(0.96 0.006 195);
-  --muted: oklch(0.27 0.027 210);
-  --muted-foreground: oklch(0.72 0.025 195);
-  --accent: oklch(0.31 0.05 190);
-  --accent-foreground: oklch(0.96 0.006 195);
-  --destructive: oklch(0.704 0.191 22.2);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.74 0.12 186);
-  --danger: oklch(0.7 0.19 25);
-  --warn: oklch(0.82 0.15 80);
-  --info: oklch(0.72 0.14 250);
-  --ok: oklch(0.75 0.16 150);
+  --background: #121413;
+  --foreground: #EDEFEC;
+  --card: #1A1D1C;
+  --card-foreground: #EDEFEC;
+  --popover: #1A1D1C;
+  --popover-foreground: #EDEFEC;
+  --primary: #3BB5A6;
+  --primary-foreground: #121413;
+  --secondary: #232726;
+  --secondary-foreground: #EDEFEC;
+  --muted: #232726;
+  --muted-foreground: #A5ABA6;
+  --accent: #232726;
+  --accent-foreground: #EDEFEC;
+  --destructive: #E57373;
+  --border: rgba(255,255,255,0.09);
+  --input: rgba(255,255,255,0.12);
+  --ring: #3BB5A6;
+  --danger: #E57373;
+  --warn: #D4A03A;
+  --info: #7AA8D8;
+  --ok: #5FB88A;
   --chart-1: oklch(0.74 0.12 186);
   --chart-2: oklch(0.75 0.16 150);
   --chart-3: oklch(0.82 0.15 80);

@@ -110,6 +110,25 @@ export const api = {
       throw e;
     }
   },
+  uploadAuditFrames: async (aid: string, rid: string, files: File[]) => {
+    const fd = new FormData();
+    for (const f of files) fd.append("files", f);
+    try {
+      const res = await fetch(`${API_URL}/api/audits/${aid}/rooms/${rid}/frames`, { method: "POST", body: fd });
+      if (!res.ok) {
+        let detail = `Something went wrong (${res.status}).`;
+        try { const b = await res.json(); if (typeof b.detail === "string") detail = b.detail; } catch { /* */ }
+        if (res.status === 413) detail = "That file is too large, try a smaller one.";
+        if (res.status === 422) detail = "We could not read that file, please try again.";
+        throw new ApiError(detail, res.status);
+      }
+      if (res.status === 204) return undefined as unknown as T.UploadAck;
+      return (await res.json()) as T.UploadAck;
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      throw new Error("Cannot reach the server. Check your connection and try again.");
+    }
+  },
   runAudit: (aid: string) => req<T.RunAck>(`/audits/${aid}/run`, { method: "POST" }),
   getAudit: (aid: string) => req<T.AuditDetail>(`/audits/${aid}`),
   patchFinding: (id: string, b: { role: T.Role; resolution?: T.Resolution; note?: string }) =>

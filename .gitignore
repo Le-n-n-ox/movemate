@@ -39,3 +39,9 @@ data/*
 backend/data
 backend/accuracy/videos/*
 !backend/accuracy/videos/.gitkeep
+
+# playwright / test artifacts
+screenshots/
+frontend/playwright-report/
+frontend/test-results/
+frontend/tests/e2e/screenshots/

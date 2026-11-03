@@ -20,6 +20,7 @@ export function Shell({ title, back, backLabel = "Back", right, children }: {
           </Link>
         ) : <span />}
         <div className="flex items-center gap-1">
+          <Link to="/start" className="text-sm font-medium text-primary hover:underline">Switch role</Link>
           {right}
           <ThemeToggle />
         </div>
@@ -30,9 +31,9 @@ export function Shell({ title, back, backLabel = "Back", right, children }: {
   );
 }
 
-export function ErrorNote({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function ErrorNote({ message, onRetry, className }: { message: string; onRetry?: () => void; className?: string }) {
   return (
-    <div role="alert" className="flex items-start gap-3 rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm">
+    <div role="alert" className={"flex items-start gap-3 rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm " + (className ?? "")}>
       <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" aria-hidden />
       <div className="flex-1 space-y-2">
         <p>{message}</p>

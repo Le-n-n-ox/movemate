@@ -20,7 +20,7 @@ export function GuestLinkCard({ token }: { token: string }) {
                 <span className={`${CORNER} right-2 top-2 rounded-tr-lg border-r-4 border-t-4`} aria-hidden />
                 <span className={`${CORNER} bottom-2 left-2 rounded-bl-lg border-b-4 border-l-4`} aria-hidden />
                 <span className={`${CORNER} bottom-2 right-2 rounded-br-lg border-b-4 border-r-4`} aria-hidden />
-                <QRCodeSVG value={link} size={160} title="QR code for the guest link" />
+                <QRCodeSVG value={link} size={120} title="QR code for the guest link" />
             </div>
             <p className="break-all rounded-lg border bg-muted p-2.5 text-center font-mono text-xs">{link}</p>
             <div className="grid grid-cols-2 gap-3">

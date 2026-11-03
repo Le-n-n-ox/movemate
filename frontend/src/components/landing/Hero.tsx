@@ -49,7 +49,7 @@ const ROWS = [
 function PhoneMock() {
   return (
     <div className="relative mx-auto w-full max-w-[19rem]" aria-hidden>
-      <div className="rounded-[2.5rem] border-[10px] border-foreground/90 bg-background p-4 shadow-2xl dark:border-foreground/30">
+      <div className="rounded-[2.5rem] border-2 border-border bg-background p-4 shadow-lg">
         <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-muted" />
         <div className="space-y-3">
           <div className="rounded-2xl bg-warn/20 p-4 text-center">
@@ -80,10 +80,10 @@ function PhoneMock() {
           </div>
         </div>
       </div>
-      <div className="absolute -left-8 top-28 hidden rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-lg sm:block">
+      <div className="absolute -left-4 top-24 hidden rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-md sm:block">
         Cleaner reported this
       </div>
-      <div className="absolute -right-8 bottom-24 hidden rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-lg sm:block">
+      <div className="absolute -right-4 bottom-20 hidden rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-md sm:block">
         Waiting for your review
       </div>
     </div>
@@ -101,17 +101,17 @@ export function Hero({ onOpenApp }: { onOpenApp: () => void }) {
     <MotionConfig reducedMotion="user">
       <section id="top" className="hero-glow relative isolate overflow-hidden">
         <div className="bg-grid absolute inset-0 -z-10" aria-hidden />
-        <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 py-14 lg:grid-cols-[1.1fr_0.9fr] lg:py-24">
+        <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-14 lg:grid-cols-[1.1fr_0.9fr] lg:pt-24 lg:pb-24">
           <div className="space-y-7">
             <motion.h1
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-              className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl"
+              className="font-display text-[clamp(2.5rem,5vw,4rem)] font-extrabold leading-[1.05] tracking-tight text-balance"
             >
               Is your home ready for the next guest? Know before they arrive.
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="max-w-xl text-lg text-muted-foreground"
+              className="max-w-[56ch] text-[1.125rem] leading-relaxed text-muted-foreground"
             >
               Scan each room once. After every stay, a cleaner checks it against your list, and you see what is missing,
               what is damaged and whether the home is ready.

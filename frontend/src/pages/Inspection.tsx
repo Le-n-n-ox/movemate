@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Copy, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { buildCleanerLink } from "@/lib/links";
 import { api } from "@/lib/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useRole } from "@/hooks/useRole";
@@ -15,7 +16,7 @@ import { FinishCard } from "@/components/inspection/FinishCard";
 
 export default function Inspection() {
   const { id = "" } = useParams();
-  const { role, isHost, actor, setActor, linkFor, withRole } = useRole();
+  const { role, isHost, actor, setActor, withRole } = useRole();
   const insp = useAsync(() => api.getInspection(id), [id]);
   const pid = insp.data?.property_id;
   const prop = useAsync(async () => (pid ? api.getProperty(pid) : null), [pid]);
@@ -37,6 +38,21 @@ export default function Inspection() {
     finally { setHintBusy(false); }
   }
 
+  if (role === "cleaner" && !actor) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="w-full max-w-sm space-y-4">
+          <h1 className="text-2xl font-bold">What's your name?</h1>
+          <input className="w-full h-12 rounded-xl border px-3" placeholder="Your name" id="cleaner-name" autoFocus />
+          <Button className="btn-tap w-full" onClick={() => {
+            const v = (document.getElementById("cleaner-name") as HTMLInputElement).value.trim();
+            if (v) setActor(v);
+          }}>Continue</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Shell title={d ? kindLabel(d.kind) : "Inspection"} back={withRole(pid ? `/properties/${pid}` : "/properties")} backLabel="Property">
       <RoleBar role={role} actor={actor} onActor={setActor} />
@@ -51,7 +67,7 @@ export default function Inspection() {
           </div>
 
           {isHost && (
-            <Button variant="outline" className="no-print btn-tap w-full" onClick={() => copyText(linkFor("cleaner"), "Cleaner link copied")}>
+            <Button variant="outline" className="no-print btn-tap w-full" onClick={() => copyText(buildCleanerLink("inspection", id), "Cleaner link copied")}>
               <Copy className="size-5" /> Copy link for the cleaner
             </Button>
           )}
