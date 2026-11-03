@@ -125,18 +125,27 @@ class MetaClient:
         from PIL import Image
 
         def _do_segment():
+            # SAM 3.1 segments from a text prompt; send one with the image.
+            sam_prompt = ("Detect and segment all household items in this image "
+                          "(appliances, remotes, glasses, lamps, and similar). "
+                          "Return JSON only: an array of objects "
+                          '{"label": "...", "bbox": [x, y, w, h], "score": 0.9} '
+                          "where bbox is in PIXELS (x, y, width, height). If none, return [].")
             content = [{"type": "input_image", "image_url": f"data:image/jpeg;base64,{_b64(image)}"},
-                       {"type": "input_text", "text": ("Identify each distinct object in this image and return its "
-                                                      "bounding box. Return JSON only: an array of objects "
-                                                      '{"label": "...", "bbox": [x, y, w, h], "score": 0.9} '
-                                                      "where bbox is in PIXELS (x, y, width, height) relative "
-                                                      "to the image. If none, return [].")}]
-
-            # sam-3.1 returns no text boxes via this gateway, so fall back to the
-            # vision-capable reasoning model, which does return usable boxes.
-            segment_model = settings.meta_reason_model
-            raw = self._post("/responses", {"model": segment_model,
+                       {"type": "input_text", "text": sam_prompt}]
+            raw = self._post("/responses", {"model": settings.meta_segment_model,
                                             "input": [{"role": "user", "content": content}]})
+            text = _extract_text(raw)
+            if not re.search(r"\[[\s\S]*\]", text):
+                # SAM returned no boxes; fall back to the vision model to detect items.
+                content = [{"type": "input_image", "image_url": f"data:image/jpeg;base64,{_b64(image)}"},
+                           {"type": "input_text", "text": ("Identify each distinct object in this image and return its "
+                                                          "bounding box. Return JSON only: an array of objects "
+                                                          '{"label": "...", "bbox": [x, y, w, h], "score": 0.9} '
+                                                          "where bbox is in PIXELS (x, y, width, height) relative "
+                                                          "to the image. If none, return [].")}]
+                raw = self._post("/responses", {"model": settings.meta_reason_model,
+                                                "input": [{"role": "user", "content": content}]})
             out = []
 
             # Get image dimensions from the original image if not provided

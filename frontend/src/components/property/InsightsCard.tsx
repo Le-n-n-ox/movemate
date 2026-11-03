@@ -11,10 +11,9 @@ import { ChartCard } from "@/components/charts/ChartCard";
 import { Donut } from "@/components/charts/Donut";
 import { BarCounts } from "@/components/charts/BarCounts";
 
-// Red is reserved for "missing"; damaged is orange.
 const COLOR: Record<ItemCondition, string> = {
-  new: "var(--chart-1)", good: "var(--ok)", worn: "var(--warn)",
-  under_repair: "var(--info)", damaged: "var(--chart-6)", missing: "var(--danger)",
+  new: "var(--chart-1)", good: "var(--ok)", worn: "var(--info)",
+  under_repair: "var(--chart-4)", damaged: "var(--chart-6)", missing: "var(--danger)",
 };
 
 const ATTENTION: ItemCondition[] = ["damaged", "missing", "under_repair"];
@@ -53,8 +52,8 @@ export function InsightsCard({ rooms }: { rooms: RoomOut[] }) {
           <p className="font-display text-2xl font-extrabold"><AnimatedNumber value={fine} /></p>
           <p className="text-xs text-muted-foreground">No issues</p>
         </Card>
-        <Card className={`gap-1 p-3 ${needAttention > 0 ? "card-warn" : ""}`}>
-          <AlertTriangle className={`size-4 ${needAttention > 0 ? "text-warn" : "text-muted-foreground"}`} aria-hidden />
+        <Card className="gap-1 p-3">
+          <AlertTriangle className="size-4 text-muted-foreground" aria-hidden />
           <p className="font-display text-2xl font-extrabold"><AnimatedNumber value={needAttention} /></p>
           <p className="text-xs text-muted-foreground">Need attention</p>
         </Card>

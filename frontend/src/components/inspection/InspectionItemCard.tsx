@@ -55,7 +55,11 @@ export function InspectionItemCard({ item, role, actor, readOnly, onChanged }: {
     const edge = item.result === "ok" ? "card-ok" : ["misplaced", "missing", "damaged"].includes(item.result) ? "card-warn" : "";
 
     return (
+
         <Card className={`gap-3 p-4 ${edge}`}>
+
+        <Card className="inspection-card gap-3 p-4">
+
             <div className="flex gap-3">
                 {item.reference_crop_url
                     ? <img src={item.reference_crop_url} alt={`Reference for ${item.label}`} className="size-20 shrink-0 rounded-xl border object-cover" />
@@ -73,7 +77,7 @@ export function InspectionItemCard({ item, role, actor, readOnly, onChanged }: {
             <div className="flex flex-wrap gap-1.5">
                 <Pill tone={resultTone[item.result]}>{resultLabel[item.result]}</Pill>
                 {consumable && <Pill>Consumable</Pill>}
-                {item.high_value && !item.photo_url && <Pill tone="warn">Photo required</Pill>}
+                {item.high_value && !item.photo_url && <Pill tone="info">Photo required</Pill>}
                 {item.checked_by && <Pill>Checked by {item.checked_by}</Pill>}
             </div>
 

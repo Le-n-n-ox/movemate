@@ -20,6 +20,7 @@ export function Shell({ title, back, backLabel = "Back", right, children }: {
           </Link>
         ) : <span />}
         <div className="flex items-center gap-1">
+          <Link to="/start" className="inline-flex min-h-12 items-center text-sm font-medium text-primary hover:underline">Switch role</Link>
           {right}
           <ThemeToggle />
         </div>
@@ -30,9 +31,9 @@ export function Shell({ title, back, backLabel = "Back", right, children }: {
   );
 }
 
-export function ErrorNote({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function ErrorNote({ message, onRetry, className }: { message: string; onRetry?: () => void; className?: string }) {
   return (
-    <div role="alert" className="flex items-start gap-3 rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm">
+    <div role="alert" className={"flex items-start gap-3 rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm " + (className ?? "")}>
       <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" aria-hidden />
       <div className="flex-1 space-y-2">
         <p>{message}</p>
@@ -60,7 +61,7 @@ const TONES = {
   neutral: "bg-muted text-muted-foreground",
   brand: "bg-accent text-accent-foreground",
   danger: "bg-danger/15 text-danger",
-  warn: "bg-warn/20 text-amber-800 dark:text-amber-300",
+  warn: "bg-warn/20 text-warn",
   info: "bg-info/15 text-info",
   ok: "bg-ok/15 text-ok",
 } as const;

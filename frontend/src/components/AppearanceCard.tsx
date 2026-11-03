@@ -1,11 +1,17 @@
+
 import { Check, Monitor, Moon, Palette, Sun, type LucideIcon } from "lucide-react";
 import { useTheme, type Accent, type Mode } from "@/hooks/useTheme";
+
+import { Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
+import { useTheme, type Mode } from "@/hooks/useTheme";
+
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const MODES: [Mode, string, LucideIcon][] = [
   ["light", "Light", Sun], ["dark", "Dark", Moon], ["system", "System", Monitor],
 ];
+
 // Match the accent themes in index.css so the swatch is the colour you get.
 const ACCENTS: [Accent, string, string][] = [
   ["teal", "Teal", "oklch(0.52 0.12 190)"], ["indigo", "Indigo", "oklch(0.52 0.2 275)"],
@@ -15,6 +21,10 @@ const ACCENTS: [Accent, string, string][] = [
 export function AppearanceCard() {
   const { mode, accent, setMode, setAccent } = useTheme();
   const accentName = ACCENTS.find(([v]) => v === accent)?.[1];
+
+export function AppearanceCard() {
+  const { mode, setMode } = useTheme();
+
   return (
     <Card className="card-lift no-print gap-4 p-4">
       <h2 className="card-title">
@@ -40,6 +50,7 @@ export function AppearanceCard() {
         </div>
       </div>
 
+
       <div className="space-y-2">
         <p className="flex items-baseline justify-between text-sm font-semibold">
           Accent <span className="font-normal text-muted-foreground">{accentName}</span>
@@ -62,6 +73,7 @@ export function AppearanceCard() {
           })}
         </div>
       </div>
+
     </Card>
   );
 }

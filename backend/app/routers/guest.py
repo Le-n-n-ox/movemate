@@ -6,7 +6,8 @@ from ..models import Item, Property, Room
 from ..pipeline import guest
 from ..schemas import GuestAnswer, GuestGuide, GuestProperty
 from ..services.rate_limit import guest_rate_limiter
-from .common import MAX_IMAGE, read_upload
+from ..services import storage
+from .common import MAX_IMAGE, MAX_VIDEO, read_upload
 
 router = APIRouter(tags=["guest"])
 
@@ -39,3 +40,13 @@ async def guest_ask(token: str, request: Request, file: UploadFile = File(...), 
                            message="I could not match this to your host's list of items. Try another angle, or contact your host.")
     data = guest.guide_for(db, item, img)
     return GuestAnswer(matched=True, item_label=item.label, message="Here is how to use it.", guide=GuestGuide(**data))
+
+
+@router.post("/guest/{token}/checkout/video")
+async def guest_checkout_video(token: str, request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    p = _property_by_token(db, token)
+    raw = await read_upload(file, MAX_VIDEO)
+    ctype = (file.content_type or "").lower()
+    ext = "jpg" if ctype.startswith("image/") else "mp4"
+    rel = storage.save_bytes("checkout", raw, ext)
+    return {"path": rel, "property": p.name, "type": "image" if ext == "jpg" else "video"}

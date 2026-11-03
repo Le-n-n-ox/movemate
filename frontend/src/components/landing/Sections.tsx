@@ -76,7 +76,7 @@ const ARCS = SEGMENTS.reduce<{ len: number; start: number; label: string; value:
 function ReadinessRing() {
   const reduce = useReducedMotion();
   return (
-    <Card className="card-warn gap-5 p-6">
+    <Card className="gap-5 p-6">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-lg font-bold">Kitchen check</h3>
         <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">Example</span>
@@ -161,6 +161,9 @@ export function Why() {
                   className="grid size-11 shrink-0 place-items-center rounded-xl bg-danger/10 text-danger"
                   whileHover={{ rotate: [0, -10, 10, -4, 0], transition: { duration: 0.5 } }}
                 >
+
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-primary">
+
                   <Icon className="size-5" aria-hidden />
                 </motion.span>
                 <div>

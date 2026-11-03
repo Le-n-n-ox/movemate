@@ -32,6 +32,20 @@ class Property(Base):
     audits: Mapped[list["Audit"]] = relationship(back_populates="property", cascade="all, delete-orphan")
 
 
+class Stay(Base):
+    """A guest stay: a per-stay guest link for checkout recording."""
+    __tablename__ = "stays"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    property_id: Mapped[str] = mapped_column(ForeignKey("properties.id", ondelete="CASCADE"))
+    stay_token: Mapped[str] = mapped_column(String(64), unique=True, default=lambda: uuid.uuid4().hex)
+    reservation_ref: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    guest_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="open")  # open | recorded | closed
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    property: Mapped["Property"] = relationship()
+
+
 class Room(Base):
     __tablename__ = "rooms"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
@@ -209,3 +223,24 @@ class DiscrepancyEvent(Base):
     actor: Mapped[str] = mapped_column(String(100), default="unknown")
     role: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class CheckoutRecording(Base):
+    __tablename__ = "checkout_recordings"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    stay_id: Mapped[str] = mapped_column(ForeignKey("stays.id", ondelete="CASCADE"))
+    room_id: Mapped[str] = mapped_column(ForeignKey("rooms.id", ondelete="CASCADE"))
+    media_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class CheckoutNote(Base):
+    __tablename__ = "checkout_notes"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    stay_id: Mapped[str] = mapped_column(ForeignKey("stays.id", ondelete="CASCADE"))
+    text: Mapped[str] = mapped_column(Text)
+    photo_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+

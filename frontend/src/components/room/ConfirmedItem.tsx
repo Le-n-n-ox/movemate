@@ -27,7 +27,7 @@ export function ConfirmedItem({ item, places, actor, onChanged }: {
           <div className="mt-1.5 flex flex-wrap gap-1">
             <Pill tone={conditionTone[item.condition]}>{item.condition.replace("_", " ")}</Pill>
             {item.kind !== "movable" && <Pill>{item.kind}</Pill>}
-            {item.high_value && <Pill tone="warn">High value</Pill>}
+            {item.high_value && <Pill tone="info">High value</Pill>}
             {item.availability === "staff_only" && <Pill tone="info">Staff only</Pill>}
           </div>
         </div>

@@ -1,13 +1,12 @@
-import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Hero, LandingHeader } from "@/components/landing/Hero";
 import {
   Boundary, Compare, Facts, Features, FinalCta, Footer, HowItWorks, Roles, ScrollProgress, Why,
 } from "@/components/landing/Sections";
-import { RolePicker } from "@/components/RolePicker";
 
 export default function Landing() {
-  const [picker, setPicker] = useState(false);
-  const openApp = () => setPicker(true);
+  const nav = useNavigate();
+  const openApp = () => nav("/start");
   return (
     <div id="main" className="overflow-x-clip">
       <ScrollProgress />
@@ -24,7 +23,6 @@ export default function Landing() {
         <FinalCta onOpenApp={openApp} />
       </main>
       <Footer />
-      <RolePicker open={picker} onClose={() => setPicker(false)} />
     </div>
   );
 }
