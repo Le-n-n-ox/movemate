@@ -3,7 +3,7 @@ import {
   ShieldCheck, Sparkles, UserCheck, Users,
   type LucideIcon,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion, useScroll, useSpring } from "motion/react";
 import { AppearanceCard } from "@/components/AppearanceCard";
 import { ActionButton } from "@/components/LinkButton";
 import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
@@ -11,6 +11,21 @@ import { Reveal } from "@/components/motion/Reveal";
 import { Card } from "@/components/ui/card";
 
 const H2 = "font-display text-3xl font-extrabold tracking-tight sm:text-4xl";
+const EASE = [0.2, 0.7, 0.2, 1] as const;
+
+/* ---------- scroll progress (add once in Landing.tsx) ---------- */
+
+export function ScrollProgress() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 24, mass: 0.3 });
+  return (
+    <motion.div
+      aria-hidden
+      className="no-print fixed inset-x-0 top-0 z-50 h-0.5 origin-left bg-primary"
+      style={{ scaleX }}
+    />
+  );
+}
 
 /* ---------- facts ---------- */
 
@@ -23,10 +38,20 @@ export function Facts() {
   return (
     <section className="border-y bg-secondary/50" aria-label="At a glance">
       <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-y-8 px-4 py-10 md:grid-cols-4 md:divide-x">
-        {FACTS.map(([n, label]) => (
+        {FACTS.map(([n, label], i) => (
           <div key={label} className="flex flex-col-reverse px-4 text-center">
             <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="font-display text-5xl font-extrabold text-primary"><AnimatedNumber value={n} /></dd>
+            <dd className="font-display text-5xl font-extrabold text-primary">
+              <AnimatedNumber value={n} />
+              <motion.span
+                aria-hidden
+                className="mx-auto mt-2 block h-1 w-10 origin-left rounded-full bg-primary/40"
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.3 + i * 0.1, ease: EASE }}
+              />
+            </dd>
           </div>
         ))}
       </dl>
@@ -49,6 +74,7 @@ const ARCS = SEGMENTS.reduce<{ len: number; start: number; label: string; value:
 }, []);
 
 function ReadinessRing() {
+  const reduce = useReducedMotion();
   return (
     <Card className="card-warn gap-5 p-6">
       <div className="flex items-center justify-between">
@@ -69,7 +95,7 @@ function ReadinessRing() {
                 key={a.label}
                 cx="70" cy="70" r="52" fill="none" stroke={a.color} strokeWidth="16"
                 strokeDashoffset={-a.start}
-                initial={{ strokeDasharray: `0 ${C}` }}
+                initial={{ strokeDasharray: reduce ? `${Math.max(a.len - 2, 0)} ${C}` : `0 ${C}` }}
                 whileInView={{ strokeDasharray: `${Math.max(a.len - 2, 0)} ${C}` }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.9, delay: 0.15 * i, ease: "easeOut" }}
@@ -78,18 +104,31 @@ function ReadinessRing() {
           </svg>
           <div className="absolute inset-0 grid place-items-center text-center">
             <p className="font-display text-3xl font-extrabold leading-none">
-              {SEGMENTS[0].value}<span className="text-lg text-muted-foreground">/{TOTAL}</span>
+              <AnimatedNumber value={SEGMENTS[0].value} />
+              <span className="text-lg text-muted-foreground">/{TOTAL}</span>
               <span className="mt-1 block text-xs font-medium text-muted-foreground">in place</span>
             </p>
           </div>
         </div>
         <ul className="w-full space-y-2 text-sm">
-          {ARCS.map((a) => (
-            <li key={a.label} className="flex items-center gap-3">
-              <span className="size-3 rounded-full" style={{ background: a.color }} aria-hidden />
+          {ARCS.map((a, i) => (
+            <motion.li
+              key={a.label}
+              className="flex items-center gap-3"
+              initial={{ opacity: 0, x: 12 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5 + i * 0.12, duration: 0.4, ease: EASE }}
+            >
+              <span className="relative flex size-3">
+                {a.label === "Missing" && (
+                  <span className="absolute inline-flex size-full animate-ping rounded-full opacity-60" style={{ background: a.color }} />
+                )}
+                <span className="relative inline-flex size-3 rounded-full" style={{ background: a.color }} aria-hidden />
+              </span>
               <span className="flex-1">{a.label}</span>
               <span className="font-display font-bold">{a.value}</span>
-            </li>
+            </motion.li>
           ))}
         </ul>
       </div>
@@ -116,11 +155,14 @@ export function Why() {
       <div className="mt-10 grid items-start gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
           {WHY.map(({ icon: Icon, problem, answer }, i) => (
-            <Reveal key={problem} delay={i * 0.08}>
+            <Reveal key={problem} delay={i * 0.1} direction="left">
               <Card className="card-lift flex-row gap-4 p-5">
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-danger/10 text-danger">
+                <motion.span
+                  className="grid size-11 shrink-0 place-items-center rounded-xl bg-danger/10 text-danger"
+                  whileHover={{ rotate: [0, -10, 10, -4, 0], transition: { duration: 0.5 } }}
+                >
                   <Icon className="size-5" aria-hidden />
-                </span>
+                </motion.span>
                 <div>
                   <h3 className="font-display text-lg font-bold">{problem}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{answer}</p>
@@ -129,9 +171,116 @@ export function Why() {
             </Reveal>
           ))}
         </div>
-        <Reveal delay={0.15}><ReadinessRing /></Reveal>
+        <Reveal delay={0.2} direction="right"><ReadinessRing /></Reveal>
       </div>
     </section>
+  );
+}
+
+/* ---------- feature artwork ---------- */
+
+type ArtKind = "scan" | "guide" | "video" | "inspect" | "cases" | "verdict";
+
+const CENTER = { transformBox: "fill-box", transformOrigin: "center" } as const;
+const LEFT = { transformBox: "fill-box", transformOrigin: "left center" } as const;
+
+const draw = (delay = 0, duration = 0.6) => ({
+  initial: { pathLength: 0 },
+  whileInView: { pathLength: 1 },
+  viewport: { once: true },
+  transition: { duration, delay, ease: "easeOut" as const },
+});
+const pop = (delay = 0) => ({
+  initial: { scale: 0, opacity: 0 },
+  whileInView: { scale: 1, opacity: 1 },
+  viewport: { once: true },
+  transition: { type: "spring" as const, stiffness: 320, damping: 16, delay },
+});
+const grow = (delay = 0) => ({
+  initial: { scaleX: 0 },
+  whileInView: { scaleX: 1 },
+  viewport: { once: true },
+  transition: { duration: 0.5, delay, ease: EASE },
+});
+
+const LOOP = { duration: 2.6, repeat: Infinity, ease: "easeInOut" as const };
+
+function FeatureArt({ kind }: { kind: ArtKind }) {
+  const reduce = useReducedMotion();
+  return (
+    <div className="grid h-24 place-items-center overflow-hidden rounded-xl bg-secondary/70" aria-hidden>
+      <svg viewBox="0 0 160 80" className="h-full w-full" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        {kind === "scan" && (
+          <>
+            <rect x="68" y="28" width="24" height="24" rx="6" fill="var(--accent)" stroke="var(--primary)" strokeWidth="2" />
+            <motion.path d="M50 26v-10h10M110 16h10v10M120 54v10h-10M60 64H50V54" stroke="var(--primary)" strokeWidth="3" {...draw()} />
+            <motion.rect
+              x="46" y="0" width="68" height="2" rx="1" fill="var(--info)"
+              initial={{ y: 18 }}
+              animate={reduce ? { y: 40 } : { y: [18, 62, 18] }}
+              transition={LOOP}
+            />
+          </>
+        )}
+
+        {kind === "guide" && [0, 1, 2].map((i) => (
+          <motion.g
+            key={i}
+            initial={{ opacity: 0, x: -10 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.2, duration: 0.4, ease: EASE }}
+          >
+            <circle cx="44" cy={20 + i * 20} r="8" fill="var(--primary)" />
+            <text x="44" y={23.5 + i * 20} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--primary-foreground)" stroke="none">{i + 1}</text>
+            <rect x="60" y={16 + i * 20} width={74 - i * 16} height="8" rx="4" fill="var(--muted-foreground)" opacity=".3" />
+          </motion.g>
+        ))}
+
+        {kind === "video" && (
+          <>
+            <rect x="36" y="10" width="88" height="60" rx="8" fill="var(--card)" stroke="var(--border)" strokeWidth="2" />
+            <rect x="50" y="46" width="22" height="14" rx="3" fill="var(--muted-foreground)" opacity=".25" />
+            <rect x="88" y="40" width="22" height="20" rx="3" fill="var(--muted-foreground)" opacity=".25" />
+            <motion.rect
+              x="48" y="24" width="26" height="38" rx="5" stroke="var(--info)" strokeWidth="2.5" strokeDasharray="5 4"
+              animate={reduce ? undefined : { x: [0, 38, 0] }}
+              transition={LOOP}
+            />
+            <circle cx="113" cy="20" r="3.5" fill="var(--danger)" className="animate-pulse" />
+          </>
+        )}
+
+        {kind === "inspect" && [0, 1, 2].map((i) => (
+          <g key={i}>
+            <rect x="46" y={14 + i * 22} width="16" height="16" rx="4" stroke="var(--primary)" strokeWidth="2" />
+            <motion.path d={`M50 ${22 + i * 22}l4 4 7-9`} stroke="var(--ok)" strokeWidth="3" {...draw(0.2 + i * 0.35, 0.35)} />
+            <motion.rect x="70" y={19 + i * 22} width={48 - i * 8} height="6" rx="3" fill="var(--muted-foreground)" opacity=".3" style={LEFT} {...grow(0.1 + i * 0.35)} />
+          </g>
+        ))}
+
+        {kind === "cases" && (
+          <>
+            <motion.path d="M58 16V64" stroke="var(--border)" strokeWidth="3" {...draw(0, 0.8)} />
+            {([["var(--danger)", 16], ["var(--warn)", 40], ["var(--ok)", 64]] as const).map(([c, y], i) => (
+              <g key={y}>
+                <motion.circle cx="58" cy={y} r="6" fill={c} style={CENTER} {...pop(0.2 + i * 0.25)} />
+                <motion.rect x="74" y={y - 4} width={[58, 46, 38][i]} height="8" rx="4" fill="var(--muted-foreground)" opacity=".3" style={LEFT} {...grow(0.3 + i * 0.25)} />
+              </g>
+            ))}
+          </>
+        )}
+
+        {kind === "verdict" && (
+          <>
+            <rect x="12" y="34" width="32" height="12" rx="6" fill="var(--warn)" opacity=".35" />
+            <rect x="116" y="34" width="32" height="12" rx="6" fill="var(--danger)" opacity=".3" />
+            <motion.circle cx="80" cy="40" r="24" stroke="var(--ok)" strokeWidth="4" {...draw(0, 0.8)} />
+            <motion.path d="M69 41l8 8 15-17" stroke="var(--ok)" strokeWidth="5" {...draw(0.6, 0.4)} />
+          </>
+        )}
+      </svg>
+    </div>
   );
 }
 
@@ -143,13 +292,13 @@ const TAGS: Record<Tag, { label: string; cls: string }> = {
   human: { label: "You decide", cls: "bg-ok/15 text-ok" },
 };
 
-const FEATURES: { icon: LucideIcon; title: string; text: string; tag?: Tag }[] = [
-  { icon: Camera, title: "Scan once", text: "Photograph important items. We suggest names and places. You confirm.", tag: "ai" },
-  { icon: Sparkles, title: "Guest guide from a photo", text: "Guests snap an appliance and get short steps. No login.", tag: "ai" },
-  { icon: ScanSearch, title: "AI video check", text: "Film a room and get hints about what looks missing or moved. Suggestions only.", tag: "ai" },
-  { icon: ClipboardCheck, title: "Human inspection", text: "A checklist per room, with photo proof for high-value items.", tag: "human" },
-  { icon: FolderOpen, title: "Cases, not blame", text: "Anything off becomes a factual record with a trail nobody can edit.", tag: "human" },
-  { icon: FileCheck2, title: "A clear verdict", text: "Ready, ready with exceptions, or not ready. Printable." },
+const FEATURES: { icon: LucideIcon; title: string; text: string; tag?: Tag; art: ArtKind }[] = [
+  { icon: Camera, title: "Scan once", text: "Photograph important items. We suggest names and places. You confirm.", tag: "ai", art: "scan" },
+  { icon: Sparkles, title: "Guest guide from a photo", text: "Guests snap an appliance and get short steps. No login.", tag: "ai", art: "guide" },
+  { icon: ScanSearch, title: "AI video check", text: "Film a room and get hints about what looks missing or moved. Suggestions only.", tag: "ai", art: "video" },
+  { icon: ClipboardCheck, title: "Human inspection", text: "A checklist per room, with photo proof for high-value items.", tag: "human", art: "inspect" },
+  { icon: FolderOpen, title: "Cases, not blame", text: "Anything off becomes a factual record with a trail nobody can edit.", tag: "human", art: "cases" },
+  { icon: FileCheck2, title: "A clear verdict", text: "Ready, ready with exceptions, or not ready. Printable.", art: "verdict" },
 ];
 
 export function Features() {
@@ -157,11 +306,12 @@ export function Features() {
     <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
       <Reveal><h2 className={H2}>Everything the loop needs</h2></Reveal>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {FEATURES.map(({ icon: Icon, title, text, tag }, i) => (
-          <Reveal key={title} delay={i * 0.06}>
+        {FEATURES.map(({ icon: Icon, title, text, tag, art }, i) => (
+          <Reveal key={title} delay={i * 0.06} className="h-full">
             <Card className="card-lift h-full gap-3 p-5">
-              <div className="flex items-start justify-between gap-2">
-                <span className="icon-badge icon-badge-lg tile"><Icon className="size-5" aria-hidden /></span>
+              <FeatureArt kind={art} />
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <span className="icon-badge tile"><Icon className="size-5" aria-hidden /></span>
                 {tag && (
                   <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${TAGS[tag].cls}`}>{TAGS[tag].label}</span>
                 )}
@@ -205,7 +355,16 @@ export function HowItWorks() {
               <li key={title}>
                 <Reveal delay={i * 0.1} className="h-full">
                   <Card className="h-full gap-2 p-5">
-                    <span className="icon-badge icon-badge-lg tile rounded-full" aria-hidden>{i + 1}</span>
+                    <motion.span
+                      className="icon-badge icon-badge-lg tile rounded-full"
+                      aria-hidden
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      whileInView={{ scale: 1, opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ type: "spring", stiffness: 300, damping: 16, delay: 0.2 + i * 0.45 }}
+                    >
+                      {i + 1}
+                    </motion.span>
                     <h3 className="mt-1 font-display text-lg font-bold">{title}</h3>
                     <p className="text-sm text-muted-foreground">{text}</p>
                     <p className="mt-auto border-t pt-2 text-xs font-medium text-primary">{why}</p>
@@ -247,7 +406,7 @@ export function Compare() {
           <span className="text-primary">MoveMate</span>
         </div>
         {COMPARE.map(([what, plain, mm], i) => (
-          <Reveal key={what} delay={i * 0.05}>
+          <Reveal key={what} delay={i * 0.05} direction="left" distance={16}>
             <Card className="gap-0 overflow-hidden p-0 md:grid md:grid-cols-[1fr_1fr_1.2fr]">
               <p className="p-4 font-display font-bold">{what}</p>
               <p className="flex items-start gap-2 p-4 pt-0 text-sm text-muted-foreground md:pt-4">
@@ -255,7 +414,15 @@ export function Compare() {
                 <span><span className="font-semibold text-foreground md:hidden">Plain checklist: </span>{plain}</span>
               </p>
               <p className="flex items-start gap-2 bg-accent/70 p-4 text-sm font-medium text-accent-foreground">
-                <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                <motion.span
+                  className="mt-0.5 shrink-0"
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ type: "spring", stiffness: 380, damping: 14, delay: 0.3 + i * 0.05 }}
+                >
+                  <Check className="size-4 text-primary" aria-hidden />
+                </motion.span>
                 <span><span className="font-semibold md:hidden">MoveMate: </span>{mm}</span>
               </p>
             </Card>
@@ -274,24 +441,39 @@ const ROLES: { icon: LucideIcon; name: string; points: string[] }[] = [
   { icon: Users, name: "Guest", points: ["Scans a link", "Photographs an appliance", "Reads short steps"] },
 ];
 
+const LIST = { hidden: {}, show: { transition: { staggerChildren: 0.08, delayChildren: 0.25 } } };
+const ITEM = { hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0, transition: { duration: 0.35, ease: EASE } } };
+
 export function Roles() {
   return (
     <section id="roles" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
       <Reveal><h2 className={H2}>Made for three people</h2></Reveal>
       <div className="mt-10 grid gap-4 md:grid-cols-3">
         {ROLES.map(({ icon: Icon, name, points }, i) => (
-          <Reveal key={name} delay={i * 0.08}>
+          <Reveal key={name} delay={i * 0.08} className="h-full">
             <Card className="card-lift h-full gap-4 p-6">
-              <span className="icon-badge icon-badge-lg tile"><Icon className="size-6" aria-hidden /></span>
+              <motion.span
+                className="icon-badge icon-badge-lg tile"
+                whileHover={{ rotate: -8, scale: 1.08 }}
+                transition={{ type: "spring", stiffness: 300, damping: 14 }}
+              >
+                <Icon className="size-6" aria-hidden />
+              </motion.span>
               <h3 className="font-display text-2xl font-bold">{name}</h3>
-              <ul className="space-y-2 text-sm">
+              <motion.ul
+                className="space-y-2 text-sm"
+                variants={LIST}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+              >
                 {points.map((p) => (
-                  <li key={p} className="flex items-start gap-2">
+                  <motion.li key={p} variants={ITEM} className="flex items-start gap-2">
                     <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                     <span className="text-muted-foreground">{p}</span>
-                  </li>
+                  </motion.li>
                 ))}
-              </ul>
+              </motion.ul>
             </Card>
           </Reveal>
         ))}
@@ -309,18 +491,36 @@ const FLOW: { icon: LucideIcon; label: string; tone: string }[] = [
 ];
 
 export function Boundary() {
+  const reduce = useReducedMotion();
   return (
     <section className="mx-auto max-w-6xl px-4 pb-16">
       <Reveal>
         <div className="grid items-center gap-6 rounded-2xl border border-primary/30 bg-accent p-6 text-accent-foreground md:grid-cols-[1.2fr_1fr]">
           <div className="flex gap-4">
-            <ShieldCheck className="size-10 shrink-0 text-primary" aria-hidden />
+            <motion.span
+              initial={{ scale: 0.6, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ type: "spring", stiffness: 260, damping: 14 }}
+              className="shrink-0"
+            >
+              <ShieldCheck className="size-10 text-primary" aria-hidden />
+            </motion.span>
             <div>
               <h2 className="font-display text-2xl font-extrabold">The AI only suggests. People decide.</h2>
               <p className="mt-1 text-sm">It never records a loss. Only the host confirms one, so nobody is blamed by a guess.</p>
             </div>
           </div>
-          <ol className="flex items-center justify-between gap-1" aria-label="How a suggestion becomes a record">
+          <ol className="relative flex items-center justify-between gap-1" aria-label="How a suggestion becomes a record">
+            {!reduce && (
+              <motion.span
+                aria-hidden
+                className="pointer-events-none absolute top-6 size-2.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_12px_var(--primary)]"
+                initial={{ left: "8%", opacity: 0 }}
+                animate={{ left: ["8%", "92%"], opacity: [0, 1, 1, 0] }}
+                transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 2.2, delay: 1.8, ease: "easeInOut" }}
+              />
+            )}
             {FLOW.map(({ icon: Icon, label, tone }, i) => (
               <li key={label} className="flex flex-1 items-center gap-1">
                 <motion.div
@@ -354,13 +554,36 @@ export function Boundary() {
 
 /* ---------- final call and footer ---------- */
 
+const CHIPS: { icon: LucideIcon; cls: string; pos: string; anim: string }[] = [
+  { icon: Check, cls: "bg-ok/15 text-ok", pos: "left-[6%] top-8", anim: "animate-float" },
+  { icon: Camera, cls: "bg-info/15 text-info", pos: "right-[8%] top-16", anim: "animate-float-slow" },
+  { icon: ShieldCheck, cls: "bg-accent text-primary", pos: "left-[14%] bottom-10", anim: "animate-float-slow" },
+  { icon: FileCheck2, cls: "bg-warn/20 text-amber-800 dark:text-amber-300", pos: "right-[12%] bottom-6", anim: "animate-float" },
+];
+
 export function FinalCta({ onOpenApp }: { onOpenApp: () => void }) {
   return (
-    <section className="hero-glow mx-auto max-w-3xl space-y-4 px-4 pb-20 pt-4 text-center">
+    <section className="hero-glow relative mx-auto max-w-4xl px-4 pb-24 pt-8 text-center">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 hidden md:block">
+        {CHIPS.map(({ icon: Icon, cls, pos, anim }, i) => (
+          <motion.span
+            key={i}
+            className={`absolute ${pos}`}
+            initial={{ opacity: 0, scale: 0.6 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 + i * 0.12, type: "spring", stiffness: 240, damping: 16 }}
+          >
+            <span className={`grid size-12 place-items-center rounded-2xl border bg-card shadow-lg ${anim}`}>
+              <span className={`grid size-8 place-items-center rounded-xl ${cls}`}><Icon className="size-4" /></span>
+            </span>
+          </motion.span>
+        ))}
+      </div>
       <Reveal>
         <h2 className={H2}>Try it with demo data</h2>
-        <p className="mt-2 text-muted-foreground">Demo mode uses sample answers, so you can explore every screen.</p>
-        <div className="mx-auto mt-6 max-w-xs">
+        <p className="mx-auto mt-2 max-w-md text-muted-foreground">Demo mode uses sample answers, so you can explore every screen.</p>
+        <div className="mx-auto mt-6 max-w-xs rounded-lg animate-pulse-ring">
           <ActionButton onClick={onOpenApp}>Open the app</ActionButton>
         </div>
       </Reveal>

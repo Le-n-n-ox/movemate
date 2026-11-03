@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Hero, LandingHeader } from "@/components/landing/Hero";
 import {
-  Boundary, Compare, Facts, Features, FinalCta, Footer, HowItWorks, Roles, Why,
+  Boundary, Compare, Facts, Features, FinalCta, Footer, HowItWorks, Roles, ScrollProgress, Why,
 } from "@/components/landing/Sections";
 import { RolePicker } from "@/components/RolePicker";
 
@@ -10,6 +10,7 @@ export default function Landing() {
   const openApp = () => setPicker(true);
   return (
     <div id="main" className="overflow-x-clip">
+      <ScrollProgress />
       <LandingHeader onOpenApp={openApp} />
       <main>
         <Hero onOpenApp={openApp} />

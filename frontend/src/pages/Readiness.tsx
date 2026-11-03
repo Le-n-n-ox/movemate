@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { Copy, Printer } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Copy, DoorOpen, Printer, User } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useRole } from "@/hooks/useRole";
@@ -31,23 +31,30 @@ function plainText(r: ReadinessReport) {
 
 export default function Readiness() {
   const { id = "" } = useParams();
-  const { role } = useRole();
+  const { withRole } = useRole();
   const q = useAsync(() => api.readiness(id), [id]);
   const r = q.data;
 
   return (
-    <Shell title="Readiness report" back={`/inspection/${id}?role=${role}`} backLabel="Inspection">
+    <Shell title="Readiness report" back={withRole(`/inspection/${id}`)} backLabel="Inspection">
       {q.loading && [0, 1, 2].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
       {q.error && <ErrorNote message={q.error} onRetry={() => q.refresh()} />}
       {r && (
-        <>
-          <p className="text-lg font-semibold">{r.property_name}</p>
+        <div className="space-y-5">
+          <p className="font-display text-2xl font-extrabold tracking-tight">{r.property_name}</p>
           <StatusHero status={r.status} summary={r.summary} />
 
-          <Card className="gap-2 p-4 text-sm">
-            <p>{kindLabel(r.kind)} by <strong>{r.inspector}</strong>{r.reservation_ref && <> · Ref {r.reservation_ref}</>}</p>
-            <p className="text-muted-foreground">Generated {new Date(r.generated_at).toLocaleString()}</p>
-            <div className="flex flex-wrap gap-2">
+          <Card className="card-lift gap-3 p-4 text-sm">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <p className="inline-flex items-center gap-1.5">
+                <User className="size-4 text-primary" aria-hidden />
+                {kindLabel(r.kind)} by <strong>{r.inspector}</strong>{r.reservation_ref && <> · Ref {r.reservation_ref}</>}
+              </p>
+              <p className="inline-flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="size-4" aria-hidden /> Generated {new Date(r.generated_at).toLocaleString()}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 border-t pt-3">
               <Pill tone={tone(r.cleaning_status)}>Cleaning: {part(r.cleaning_status)}</Pill>
               <Pill tone={tone(r.inventory_status)}>Items: {part(r.inventory_status)}</Pill>
             </div>
@@ -56,42 +63,58 @@ export default function Readiness() {
 
           {r.exception_note && (
             <div className="warn-box space-y-1 !p-4">
-              <p className="font-semibold">Completed with an exception</p>
+              <p className="font-display font-bold">Completed with an exception</p>
               <p>{r.exception_note}</p>
               {r.exception_by && <p className="text-xs">Approved by {r.exception_by}</p>}
             </div>
           )}
 
-          <ListCard title="Blocking" tone="danger" hint="These must be resolved before the home is ready." items={r.blocking} />
-          <ListCard title="Open cases" items={r.open_cases} />
-          <ListCard title="Known gaps" hint="Recorded as missing. Nobody is asked to find these again." items={r.known_gaps} />
-          <ListCard title="Low stock" items={r.low_stock} />
+          <div className="stagger space-y-4">
+            <ListCard title="Blocking" tone="danger" hint="These must be resolved before the home is ready." items={r.blocking} />
+            <ListCard title="Open cases" items={r.open_cases} />
+            <ListCard title="Known gaps" hint="Recorded as missing. Nobody is asked to find these again." items={r.known_gaps} />
+            <ListCard title="Low stock" items={r.low_stock} />
+          </div>
 
           <IssuesChart rooms={r.rooms} />
 
           <section className="space-y-3" aria-label="Rooms">
-            <h2 className="text-lg font-semibold">Rooms</h2>
-            {r.rooms.map((room) => (
-              <Card key={room.room_name} className="gap-2 p-4">
-                <p className="font-semibold">{room.room_name}</p>
-                <div className="flex flex-wrap gap-2">
-                  <Pill tone={tone(room.cleaning_status)}>Cleaning: {part(room.cleaning_status)}</Pill>
-                  <Pill tone={tone(room.inventory_status)}>Items: {part(room.inventory_status)}</Pill>
-                </div>
-                {room.issues.length > 0
-                  ? <ul className="list-disc space-y-1 pl-5 text-sm">{room.issues.map((s, i) => <li key={i}>{s}</li>)}</ul>
-                  : <p className="text-sm text-muted-foreground">No issues recorded.</p>}
-              </Card>
-            ))}
+            <h2 className="card-title">
+              <span className="icon-badge"><DoorOpen className="size-5" aria-hidden /></span>
+              Rooms
+              <span className="rounded-full bg-accent px-2 py-0.5 text-sm font-semibold text-accent-foreground">{r.rooms.length}</span>
+            </h2>
+            <div className="stagger grid gap-3 sm:grid-cols-2">
+              {r.rooms.map((room) => {
+                const clear = room.issues.length === 0;
+                return (
+                  <Card key={room.room_name} className={`card-lift gap-3 p-4 ${clear ? "card-ok" : "card-warn"}`}>
+                    <p className="flex items-center gap-2 font-display text-lg font-bold">
+                      {clear
+                        ? <CheckCircle2 className="size-5 text-ok" aria-hidden />
+                        : <AlertTriangle className="size-5 text-warn" aria-hidden />}
+                      {room.room_name}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Pill tone={tone(room.cleaning_status)}>Cleaning: {part(room.cleaning_status)}</Pill>
+                      <Pill tone={tone(room.inventory_status)}>Items: {part(room.inventory_status)}</Pill>
+                    </div>
+                    {clear
+                      ? <p className="text-sm text-muted-foreground">No issues recorded.</p>
+                      : <ul className="list-disc space-y-1 pl-5 text-sm marker:text-warn">{room.issues.map((s, i) => <li key={i}>{s}</li>)}</ul>}
+                  </Card>
+                );
+              })}
+            </div>
           </section>
 
-          <div className="no-print grid grid-cols-2 gap-3">
+          <div className="no-print grid grid-cols-2 gap-3 pt-2">
             <Button variant="outline" className="btn-tap" onClick={() => copyText(plainText(r), "Summary copied")}>
               <Copy className="size-5" /> Copy summary
             </Button>
             <Button className="btn-tap" onClick={() => window.print()}><Printer className="size-5" /> Print</Button>
           </div>
-        </>
+        </div>
       )}
     </Shell>
   );

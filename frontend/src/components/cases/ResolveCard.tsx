@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { CLEANER_OUTCOMES, OUTCOMES } from "@/lib/labels";
@@ -26,8 +27,10 @@ export function ResolveCard({ id, role, actor, onChanged }: { id: string; role: 
   }
 
   return (
-    <Card className="gap-3 p-4">
-      <h2 className="text-lg font-semibold">Resolve</h2>
+    <Card className="card-ok gap-3 p-4">
+      <h2 className="card-title">
+        <span className="icon-badge bg-ok/15 text-ok"><CheckCircle2 className="size-5" aria-hidden /></span> Resolve
+      </h2>
       <div className="space-y-1.5">
         <Label htmlFor="outcome">Outcome</Label>
         <select id="outcome" className="field" value={outcome} onChange={(e) => setOutcome(e.target.value as Outcome)}>
@@ -38,7 +41,11 @@ export function ResolveCard({ id, role, actor, onChanged }: { id: string; role: 
         <Label htmlFor="r-note">Note (optional)</Label>
         <Textarea id="r-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
-      {role === "cleaner" && <p className="text-xs text-muted-foreground">Other outcomes are chosen by the host.</p>}
+      {role === "cleaner" && (
+        <p className="hint-box flex items-start gap-2">
+          <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden /> Other outcomes are chosen by the host.
+        </p>
+      )}
       <Button className="btn-tap" disabled={busy} onClick={resolve}>{busy ? "Saving..." : "Resolve case"}</Button>
     </Card>
   );

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { CheckCheck, ListChecks, Plus } from "lucide-react";
+import { CheckCheck, ListChecks, MapPin, Plus, ScanLine, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAsync } from "@/hooks/useAsync";
@@ -14,6 +14,9 @@ import { ScanCard } from "@/components/room/ScanCard";
 import { PlacesCard } from "@/components/room/PlacesCard";
 import { SuggestedCard } from "@/components/room/SuggestedCard";
 import { ConfirmedItem } from "@/components/room/ConfirmedItem";
+
+const jump = (id: string) =>
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
 export default function Room() {
   const { id = "", roomId = "" } = useParams();
@@ -43,42 +46,73 @@ export default function Room() {
   }
 
   const err = room.error ?? items.error;
+  const sections = [
+    { id: "scan", label: "Scan", Icon: ScanLine, show: true },
+    { id: "review", label: `To review (${suggested.length})`, Icon: Sparkles, show: suggested.length > 0 },
+    { id: "confirmed", label: `Items (${confirmed.length})`, Icon: ListChecks, show: true },
+    { id: "places", label: "Places", Icon: MapPin, show: true },
+  ].filter((s) => s.show);
+
   return (
     <Shell title={room.data?.name ?? "Room"} back={withRole(`/properties/${id}`)} backLabel="Property">
       <RoleBar role={role} actor={actor} onActor={setActor} />
       {(room.loading || items.loading) && [0, 1].map((i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
       {err && <ErrorNote message={err} onRetry={refresh} />}
       {room.data && (
-        <>
+        <div className="space-y-5">
+          <nav className="jump-bar no-print" aria-label="Jump to section">
+            {sections.map(({ id: sid, label, Icon }) => (
+              <button key={sid} type="button" onClick={() => jump(sid)}>
+                <Icon className="size-4" aria-hidden /> {label}
+              </button>
+            ))}
+          </nav>
+
           <RoomHeader room={room.data} onChanged={refresh} />
-          <ScanCard roomId={roomId} suggested={suggested} onDone={refresh} />
+          <div id="scan" className="jump-target">
+            <ScanCard roomId={roomId} suggested={suggested} onDone={refresh} />
+          </div>
 
           {suggested.length > 0 && (
-            <section className="space-y-3" aria-label="Items to review">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Items we found ({suggested.length})</h2>
+            <section id="review" className="jump-target space-y-3" aria-label="Items to review">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="card-title">
+                  <span className="icon-badge bg-info/15 text-info"><Sparkles className="size-5" aria-hidden /></span>
+                  Items we found
+                  <span className="rounded-full bg-info/15 px-2 py-0.5 text-sm font-semibold text-info">{suggested.length}</span>
+                </h2>
                 <Button variant="outline" className="btn-tap" onClick={confirmAll}><CheckCheck className="size-5" /> Confirm all</Button>
               </div>
-              {suggested.map((i) => <SuggestedCard key={i.id} item={i} onChanged={refresh} />)}
+              <div className="stagger space-y-4">
+                {suggested.map((i) => <SuggestedCard key={i.id} item={i} onChanged={refresh} />)}
+              </div>
             </section>
           )}
 
-          <section className="space-y-3" aria-label="Confirmed items">
-            <h2 className="text-lg font-semibold">Confirmed items ({confirmed.length})</h2>
+          <section id="confirmed" className="jump-target space-y-3" aria-label="Confirmed items">
+            <h2 className="card-title">
+              <span className="icon-badge"><ListChecks className="size-5" aria-hidden /></span>
+              Confirmed items
+              <span className="rounded-full bg-accent px-2 py-0.5 text-sm font-semibold text-accent-foreground">{confirmed.length}</span>
+            </h2>
             {!items.loading && confirmed.length === 0 && (
               <EmptyState icon={<ListChecks className="size-8" />} title="Nothing confirmed yet" hint="Take an item photo or add an item by name." />
             )}
-            {confirmed.map((i) => (
-              <ConfirmedItem key={i.id} item={i} places={places.data ?? []} actor={actor} onChanged={refresh} />
-            ))}
-            <form onSubmit={addItem} className="grid grid-cols-[1fr_auto] gap-2">
+            <div className="stagger space-y-3">
+              {confirmed.map((i) => (
+                <ConfirmedItem key={i.id} item={i} places={places.data ?? []} actor={actor} onChanged={refresh} />
+              ))}
+            </div>
+            <form onSubmit={addItem} className="grid grid-cols-[1fr_auto] gap-2 rounded-xl border-2 border-dashed bg-card/60 p-3 transition-colors focus-within:border-primary hover:border-primary/50">
               <Input aria-label="Item name" placeholder="Add an item by name" className="h-12" value={name} onChange={(e) => setName(e.target.value)} />
               <Button type="submit" className="btn-tap" aria-label="Add item"><Plus className="size-5" /></Button>
             </form>
           </section>
 
-          <PlacesCard pid={id} room={room.data} places={places.data ?? []} onChanged={refresh} />
-        </>
+          <div id="places" className="jump-target">
+            <PlacesCard pid={id} room={room.data} places={places.data ?? []} onChanged={refresh} />
+          </div>
+        </div>
       )}
     </Shell>
   );
