@@ -29,7 +29,7 @@ export default function Guest() {
     finally { setBusy(false); }
   }
 
-  if (info.loading) return <main className="page"><Skeleton className="h-10 w-2/3" /><Skeleton className="h-40 w-full rounded-xl" /></main>;
+  if (info.loading) return <main className="page"><Skeleton className="h-12 w-2/3" /><Skeleton className="h-48 w-full rounded-xl" /></main>;
   if (info.error || !info.data) {
     return (
       <main className="page">
@@ -43,36 +43,36 @@ export default function Guest() {
     <main className="page text-lg">
       <header className="space-y-1">
         <p className="flex items-center gap-2 text-sm font-medium text-primary"><Home className="size-4" aria-hidden /> Welcome</p>
-        <h1 className="text-3xl font-bold tracking-tight">{g.property_name}</h1>
+        <h1 className="text-4xl font-extrabold tracking-tight">{g.property_name}</h1>
       </header>
 
       {g.house_rules && (
-        <section className="rounded-xl bg-secondary p-4" aria-label="House rules">
-          <h2 className="mb-1 flex items-center gap-2 text-base font-semibold"><ScrollText className="size-5" aria-hidden /> House rules</h2>
-          <p className="whitespace-pre-wrap text-base">{g.house_rules}</p>
+        <section className="rounded-xl bg-secondary p-5 mb-4" aria-label="House rules">
+          <h2 className="mb-1 flex items-center gap-2 text-xl font-semibold"><ScrollText className="size-5" aria-hidden /> House rules</h2>
+          <p className="whitespace-pre-wrap text-base text-foreground">{g.house_rules}</p>
         </section>
       )}
 
-      <section className="space-y-3" aria-label="Get help with an appliance">
-        <h2 className="text-xl font-semibold">Need help with something?</h2>
+      <section className="space-y-4 mb-6" aria-label="Get help with an appliance">
+        <h2 className="text-2xl font-bold">Need help with something?</h2>
         <p className="text-base text-muted-foreground">Take a photo of it. We will show you how it works.</p>
         <FilePicker
           kind="image" label="Snap a photo" icon={<Camera className="size-6" />}
-          busy={busy} busyLabel="Looking..." onFile={ask}
+          busy={busy} busyLabel="Looking…" onFile={ask}
           buttonClassName="min-h-16 text-xl"
         />
       </section>
 
-      {preview && <img src={preview} alt="Your photo" className="max-h-64 w-full rounded-xl object-cover" />}
-      {busy && <p role="status" className="text-center text-base text-muted-foreground">Looking at your photo. This takes a few seconds.</p>}
-      {error && <ErrorNote message={error} onRetry={() => last.current && ask(last.current)} />}
+      {preview && <img src={preview} alt="Your photo" className="max-h-72 w-full rounded-xl object-cover mb-4" />}
+      {busy && <p role="status" className="text-center text-base text-muted-foreground mb-4">Looking at your photo. This takes a few seconds.</p>}
+      {error && <ErrorNote message={error} onRetry={() => last.current && ask(last.current)} className="mb-4" />}
 
       {answer?.matched && answer.guide && <GuideCards guide={answer.guide} />}
       {answer && !(answer.matched && answer.guide) && (
-        <div className="space-y-2 rounded-xl border p-4" role="status">
-          <p className="text-xl font-semibold">We could not tell what that is.</p>
+        <div className="space-y-3 rounded-xl border p-5 text-base mb-4" role="status">
+          <p className="text-2xl font-bold">We could not tell what that is.</p>
           <p className="text-base">{answer.message}</p>
-          <p className="text-base text-muted-foreground">Try again from another angle, a bit closer, with more light.</p>
+          <p className="text-sm text-muted-foreground">Try again from another angle, a bit closer, with more light.</p>
         </div>
       )}
 
