@@ -114,41 +114,6 @@ export default function Room() {
             <PlacesCard pid={id} room={room.data} places={places.data ?? []} onChanged={refresh} />
           </div>
         </div>
-
-
-          <section className="space-y-4">
-            <ScanCard roomId={roomId} suggested={suggested} onDone={refresh} />
-
-            {suggested.length > 0 && (
-              <section className="space-y-3" aria-label="Items to review">
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-lg font-semibold">Items we found ({suggested.length})</h2>
-                  <Button variant="outline" className="btn-tap" onClick={confirmAll}><CheckCheck className="size-5" /> Confirm all</Button>
-                </div>
-                {suggested.map((i) => <SuggestedCard key={i.id} item={i} onChanged={refresh} />)}
-              </section>
-            )}
-
-            <section className="space-y-3" aria-label="Confirmed items">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold">Confirmed items ({confirmed.length})</h2>
-              </div>
-              {!items.loading && confirmed.length === 0 && (
-                <EmptyState icon={<ListChecks className="size-8" />} title="Nothing confirmed yet" hint="Take an item photo or add an item by name." />
-              )}
-              {confirmed.map((i) => (
-                <ConfirmedItem key={i.id} item={i} places={places.data ?? []} actor={actor} onChanged={refresh} />
-              ))}
-              <form onSubmit={addItem} className="grid grid-cols-[1fr_auto] gap-2">
-                <Input aria-label="Item name" placeholder="Add an item by name" className="h-12" value={name} onChange={(e) => setName(e.target.value)} />
-                <Button type="submit" className="btn-tap" aria-label="Add item"><Plus className="size-5" /></Button>
-              </form>
-            </section>
-
-            <PlacesCard pid={id} room={room.data} places={places.data ?? []} onChanged={refresh} />
-          </section>
-        </>
-
       )}
     </Shell>
   );

@@ -1,8 +1,4 @@
 import { useState } from "react";
-
-import { Link, useNavigate } from "react-router-dom";
-import { Building2, ChevronRight, FlaskConical, Plus, Users } from "lucide-react";
-
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Building2, Plus } from "lucide-react";
 
@@ -14,31 +10,50 @@ import { Shell, ErrorNote, EmptyState } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Properties() {
   const nav = useNavigate();
   const { role, withRole } = useRole();
-  if (role === "cleaner") return <Navigate to="/cleaner?role=cleaner" replace />;
   const list = useAsync(api.listProperties);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ name: "", address: "", property_type: "", capacity: "" });
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
+
+  const set =
+    (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
+      setF({ ...f, [k]: e.target.value });
+
+  // Redirect must come after every hook so call order is stable.
+  if (role === "cleaner") return <Navigate to="/cleaner?role=cleaner" replace />;
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
     if (!f.name.trim()) return toast.error("Please give the property a name.");
     setBusy(true);
     try {
-      const p = await api.createProperty({ name: f.name.trim(), address: f.address.trim() || undefined, property_type: f.property_type.trim() || undefined, capacity: f.capacity ? Number(f.capacity) : undefined });
+      const p = await api.createProperty({
+        name: f.name.trim(),
+        address: f.address.trim() || undefined,
+        property_type: f.property_type.trim() || undefined,
+        capacity: f.capacity ? Number(f.capacity) : undefined,
+      });
       toast.success("Property created");
       setOpen(false);
       setF({ name: "", address: "", property_type: "", capacity: "" });
       nav(withRole(`/properties/${p.id}`));
-    } catch (err) { toast.error((err as Error).message); }
-    finally { setBusy(false); }
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function seed() {
@@ -47,8 +62,11 @@ export default function Properties() {
       const r = await api.seed();
       toast.success("Demo data loaded");
       nav(withRole(`/properties/${r.property_id}`));
-    } catch (err) { toast.error((err as Error).message); }
-    finally { setBusy(false); }
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   const props = list.data ?? [];
@@ -56,102 +74,81 @@ export default function Properties() {
   const total = props.length;
 
   return (
-
-    <Shell
-      title="MoveMate"
-      right={health.data?.mock_models ? <Pill tone="warn">Demo mode</Pill> : undefined}
-    >
-      <div className="space-y-6">
-        <div className="space-y-3">
-          <p className="max-w-prose text-lg text-muted-foreground">
-            Know what should be there, check it, and see clearly if your home is ready for the next guest.
-          </p>
-          <p className="role-chip">
-            <span className="size-2 rounded-full bg-primary" aria-hidden />
-            Viewing as <strong>{role}</strong>
-            <Link to="/" className="font-semibold text-primary underline underline-offset-4">Switch role</Link>
-          </p>
-        </div>
-
-        <section aria-label="Your properties" className="space-y-3">
-          <h2 className="card-title">
-            <span className="icon-badge"><Building2 className="size-5" aria-hidden /></span>
-            Your properties
-            {list.data && list.data.length > 0 && (
-              <span className="rounded-full bg-accent px-2 py-0.5 text-sm font-semibold text-accent-foreground">{list.data.length}</span>
-            )}
-          </h2>
-          {list.loading && [0, 1].map((i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
-          {list.error && <ErrorNote message={list.error} onRetry={() => list.refresh()} />}
-          {!list.loading && !list.error && list.data?.length === 0 && (
-            <EmptyState icon={<Building2 className="size-8" />} title="No properties yet" hint="Add your first home below." />
-          )}
-          <div className="stagger space-y-3">
-            {list.data?.map((p) => (
-              <Link key={p.id} to={withRole(`/properties/${p.id}`)} className="row-link p-4">
-                <span className="icon-badge icon-badge-lg tile" aria-hidden>{p.name.charAt(0).toUpperCase()}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-display text-lg font-bold">{p.name}</span>
-                  <span className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">
-                    {p.property_type && <span>{p.property_type}</span>}
-                    {p.capacity && <span className="inline-flex items-center gap-1"><Users className="size-4" aria-hidden />{p.capacity} guests</span>}
-                    {p.address && <span className="truncate">{p.address}</span>}
-                  </span>
-                </span>
-                <ChevronRight className="row-chevron size-5 shrink-0 text-muted-foreground" aria-hidden />
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <Card className="card-lift p-4">
-          <form onSubmit={create} className="space-y-3">
-            <h2 className="card-title"><span className="icon-badge"><Plus className="size-5" aria-hidden /></span> Add a property</h2>
-            <div className="space-y-1.5"><Label htmlFor="name">Name</Label>
-              <Input id="name" value={f.name} onChange={set("name")} placeholder="Beach flat" className="h-12" required /></div>
-            <div className="space-y-1.5"><Label htmlFor="address">Address</Label>
-              <Input id="address" value={f.address} onChange={set("address")} className="h-12" /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label htmlFor="type">Type</Label>
-                <Input id="type" value={f.property_type} onChange={set("property_type")} placeholder="Apartment" className="h-12" /></div>
-              <div className="space-y-1.5"><Label htmlFor="cap">Guests</Label>
-                <Input id="cap" type="number" inputMode="numeric" min={1} value={f.capacity} onChange={set("capacity")} className="h-12" /></div>
-            </div>
-            <Button type="submit" disabled={busy} className="btn-tap w-full"><Plus className="size-5" /> Create property</Button>
-          </form>
-        </Card>
-
-        {health.data && (
-          <Button variant="outline" onClick={seed} disabled={busy} className="btn-tap w-full">
-            <FlaskConical className="size-5" /> Load demo data (dev)
-          </Button>
-        )}
-
-        <AppearanceCard />
-      </div>
-
     <Shell title="Properties">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-4xl font-bold tracking-tight">Properties</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {total} {total === 1 ? "property" : "properties"}
-            {needsAttention > 0 && <>, <span className="font-medium text-info">{needsAttention} need{needsAttention === 1 ? "s" : ""} attention</span></>}
+            {needsAttention > 0 && (
+              <>
+                ,{" "}
+                <span className="font-medium text-info">
+                  {needsAttention} need{needsAttention === 1 ? "s" : ""} attention
+                </span>
+              </>
+            )}
           </p>
         </div>
         {role === "host" && (
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger><Button className="btn-tap"><Plus className="size-4" /> Add property</Button></DialogTrigger>
+            <DialogTrigger>
+              <Button className="btn-tap">
+                <Plus className="size-4" /> Add property
+              </Button>
+            </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Add a property</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Add a property</DialogTitle>
+              </DialogHeader>
               <form onSubmit={create} className="space-y-3">
-                <div className="space-y-1.5"><Label htmlFor="name">Name</Label><Input id="name" value={f.name} onChange={set("name")} placeholder="Beach flat" className="h-12" required /></div>
-                <div className="space-y-1.5"><Label htmlFor="address">Address</Label><Input id="address" value={f.address} onChange={set("address")} className="h-12" /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5"><Label htmlFor="type">Type</Label><Input id="type" value={f.property_type} onChange={set("property_type")} placeholder="Apartment" className="h-12" /></div>
-                  <div className="space-y-1.5"><Label htmlFor="cap">Guests</Label><Input id="cap" type="number" inputMode="numeric" min={1} value={f.capacity} onChange={set("capacity")} className="h-12" /></div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={f.name}
+                    onChange={set("name")}
+                    placeholder="Beach flat"
+                    className="h-12"
+                    required
+                  />
                 </div>
-                <Button type="submit" disabled={busy} className="btn-tap w-full">Create property</Button>
+                <div className="space-y-1.5">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={f.address}
+                    onChange={set("address")}
+                    className="h-12"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="type">Type</Label>
+                    <Input
+                      id="type"
+                      value={f.property_type}
+                      onChange={set("property_type")}
+                      placeholder="Apartment"
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="cap">Guests</Label>
+                    <Input
+                      id="cap"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      value={f.capacity}
+                      onChange={set("capacity")}
+                      className="h-12"
+                    />
+                  </div>
+                </div>
+                <Button type="submit" disabled={busy} className="btn-tap w-full">
+                  Create property
+                </Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -160,25 +157,41 @@ export default function Properties() {
 
       {list.loading && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[0,1,2].map(i => <Skeleton key={i} className="h-48 w-full rounded-2xl" />)}
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-48 w-full rounded-2xl" />
+          ))}
         </div>
       )}
       {list.error && <ErrorNote message={list.error} onRetry={() => list.refresh()} />}
       {!list.loading && !list.error && props.length === 0 && (
-        <EmptyState icon={<Building2 className="size-8" />} title="No properties yet" hint="Add your first home to get started." />
+        <EmptyState
+          icon={<Building2 className="size-8" />}
+          title="No properties yet"
+          hint="Add your first home to get started."
+        />
       )}
       {!list.loading && !list.error && props.length > 0 && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3 auto-rows-[220px]">
           {props.map((p: any, i: number) => {
-            const feature = i === 0 && (p.open_discrepancies > 0);
+            const feature = i === 0 && p.open_discrepancies > 0;
             return (
-              <Link key={p.id} to={withRole(`/properties/${p.id}`)} className={`group block ${feature ? "md:col-span-2" : ""}`}>
+              <Link
+                key={p.id}
+                to={withRole(`/properties/${p.id}`)}
+                className={`group block ${feature ? "md:col-span-2" : ""}`}
+              >
                 <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-md">
                   <div className={`relative bg-muted ${feature ? "h-40" : "h-28"}`}>
                     {p.cover_photo ? (
-                      <img src={p.cover_photo} alt={p.name} className="h-full w-full object-cover" />
+                      <img
+                        src={p.cover_photo}
+                        alt={p.name}
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-muted-foreground"><Building2 className="size-8" /></div>
+                      <div className="flex h-full items-center justify-center text-muted-foreground">
+                        <Building2 className="size-8" />
+                      </div>
                     )}
                     {p.open_discrepancies > 0 && (
                       <span className="absolute left-3 top-3 rounded-full bg-card/95 px-3 py-1 text-xs font-semibold text-foreground shadow-sm">
@@ -189,11 +202,21 @@ export default function Properties() {
                   <div className="flex flex-1 flex-col justify-between p-4">
                     <div>
                       <p className="font-display text-lg font-semibold">{p.name}</p>
-                      {p.address && <p className="text-sm text-muted-foreground truncate">{p.address}</p>}
+                      {p.address && (
+                        <p className="text-sm text-muted-foreground truncate">{p.address}</p>
+                      )}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                      {p.property_type && <span className="rounded-full bg-secondary px-2 py-0.5">{p.property_type}</span>}
-                      {p.capacity && <span className="rounded-full bg-secondary px-2 py-0.5">{p.capacity} guests</span>}
+                      {p.property_type && (
+                        <span className="rounded-full bg-secondary px-2 py-0.5">
+                          {p.property_type}
+                        </span>
+                      )}
+                      {p.capacity && (
+                        <span className="rounded-full bg-secondary px-2 py-0.5">
+                          {p.capacity} guests
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -205,12 +228,16 @@ export default function Properties() {
 
       {role === "host" && props.length === 0 && (
         <div className="mt-6 flex justify-center">
-          <button type="button" onClick={seed} disabled={busy} className="text-sm text-muted-foreground hover:text-foreground underline">
+          <button
+            type="button"
+            onClick={seed}
+            disabled={busy}
+            className="text-sm text-muted-foreground hover:text-foreground underline"
+          >
             Load demo data (dev)
           </button>
         </div>
       )}
-
     </Shell>
   );
 }

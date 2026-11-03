@@ -8,7 +8,6 @@ export function GuideCards({ guide }: { guide: GuestGuide }) {
       <h2 className="font-display text-3xl font-extrabold leading-tight tracking-tight">{guide.title}</h2>
 
       {guide.warnings.length > 0 && (
-
         <div role="note" className="warn-box pop flex items-start gap-3 !p-4 text-base">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-warn/30 text-amber-800 dark:text-amber-300">
             <AlertTriangle className="size-5" aria-hidden />
@@ -19,13 +18,6 @@ export function GuideCards({ guide }: { guide: GuestGuide }) {
               {guide.warnings.map((w, i) => <li key={i}>{w}</li>)}
             </ul>
           </div>
-
-        <div role="note" className="hint-box space-y-2 !p-4 text-base">
-          <p className="flex items-center gap-2 font-semibold"><AlertTriangle className="size-5" aria-hidden /> Be careful</p>
-          <ul className="list-disc space-y-1 pl-5">
-            {guide.warnings.map((w, i) => <li key={i}>{w}</li>)}
-          </ul>
-
         </div>
       )}
 

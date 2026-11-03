@@ -161,9 +161,6 @@ export function Why() {
                   className="grid size-11 shrink-0 place-items-center rounded-xl bg-danger/10 text-danger"
                   whileHover={{ rotate: [0, -10, 10, -4, 0], transition: { duration: 0.5 } }}
                 >
-
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-primary">
-
                   <Icon className="size-5" aria-hidden />
                 </motion.span>
                 <div>

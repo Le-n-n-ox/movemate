@@ -36,13 +36,12 @@ export default function Readiness() {
   const r = q.data;
 
   return (
-
     <Shell title="Readiness report" back={withRole(`/inspection/${id}`)} backLabel="Inspection">
-      {q.loading && [0, 1, 2].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
-
-    <Shell title="Readiness report" back={`/inspection/${id}?role=${role}`} backLabel="Inspection">
-      {q.loading && <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}</div>}
-
+      {q.loading && (
+        <div className="space-y-3">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
+        </div>
+      )}
       {q.error && <ErrorNote message={q.error} onRetry={() => q.refresh()} />}
       {r && (
         <div className="space-y-5">
@@ -67,20 +66,14 @@ export default function Readiness() {
           </Card>
 
           {r.exception_note && (
-
             <div className="warn-box space-y-1 !p-4">
-              <p className="font-display font-bold">Completed with an exception</p>
-
-            <div className="rounded-xl border bg-muted p-4">
-              <p className="mb-1 flex items-center gap-2 font-semibold text-foreground">
-                <span className="size-5" aria-hidden>⚠</span> Completed with an exception
+              <p className="flex items-center gap-2 font-display font-bold">
+                <AlertTriangle className="size-5 text-warn" aria-hidden /> Completed with an exception
               </p>
-
               <p>{r.exception_note}</p>
               {r.exception_by && <p className="text-xs">Approved by {r.exception_by}</p>}
             </div>
           )}
-
 
           <div className="stagger space-y-4">
             <ListCard title="Blocking" tone="danger" hint="These must be resolved before the home is ready." items={r.blocking} />
@@ -119,29 +112,6 @@ export default function Readiness() {
                 );
               })}
             </div>
-
-          <ListCard title="Blocking" hint="These must be resolved before the home is ready." items={r.blocking} />
-          <ListCard title="Open cases" items={r.open_cases} />
-          <ListCard title="Known gaps" hint="Recorded as missing. Nobody is asked to find these again." items={r.known_gaps} />
-          <ListCard title="Low stock" items={r.low_stock} />
-
-          <IssuesChart rooms={r.rooms} />
-
-          <section className="space-y-4" aria-label="Rooms">
-            <h2 className="text-lg font-semibold">Rooms</h2>
-            {r.rooms.map((room) => (
-              <Card key={room.room_name} className="gap-2 p-4">
-                <p className="font-semibold">{room.room_name}</p>
-                <div className="flex flex-wrap gap-2">
-                  <Pill tone={tone(room.cleaning_status)}>Cleaning: {part(room.cleaning_status)}</Pill>
-                  <Pill tone={tone(room.inventory_status)}>Items: {part(room.inventory_status)}</Pill>
-                </div>
-                {room.issues.length > 0
-                  ? <ul className="list-disc space-y-1 pl-5 text-sm">{room.issues.map((s, i) => <li key={i}>{s}</li>)}</ul>
-                  : <p className="text-sm text-muted-foreground">No issues recorded.</p>}
-              </Card>
-            ))}
-
           </section>
 
           <div className="no-print grid grid-cols-2 gap-3 pt-2">
