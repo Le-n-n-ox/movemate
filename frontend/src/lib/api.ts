@@ -1,6 +1,13 @@
 import type * as T from "./types";
 
+// Empty string (VITE_API_URL="") means same origin, so calls go through the Vite proxy.
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+/**
+ * PROVISIONAL: the stay/checkout endpoints are not in the shared contract yet.
+ * Replace with real types from schemas.py (and types.ts) once the contract PR lands.
+ */
+export type StayJson = Record<string, unknown>;
 
 export class ApiError extends Error {
   status: number;
@@ -10,27 +17,50 @@ export class ApiError extends Error {
   }
 }
 
+const NETWORK_ERROR = "Cannot reach the server. Check your connection and try again.";
+
+/** The server's human-readable `detail`, if the body has one. */
+async function detailOf(res: Response): Promise<string | null> {
+  try {
+    const body = await res.json();
+    if (typeof body?.detail === "string") return body.detail;
+    if (Array.isArray(body?.detail)) {
+      const msg = body.detail.map((d: { msg?: string }) => d.msg).filter(Boolean).join(", ");
+      return msg || null;
+    }
+  } catch { /* body is not JSON */ }
+  return null;
+}
+
 async function req<R>(path: string, init?: RequestInit): Promise<R> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api${path}`, init);
   } catch {
-    throw new Error("Cannot reach the server. Check your connection and try again.");
+    throw new Error(NETWORK_ERROR);
   }
   if (!res.ok) {
-    let detail = `Something went wrong (${res.status}).`;
-    try {
-      const body = await res.json();
-      if (typeof body.detail === "string") detail = body.detail;
-      else if (Array.isArray(body.detail)) detail = body.detail.map((d: { msg: string }) => d.msg).join(", ");
-    } catch { /* keep default */ }
-    if (res.status === 413) detail = "That file is too big. Please record a shorter video.";
+    let detail =
+      (await detailOf(res)) ??
+      (res.status >= 500 ? "The server is not responding. Please try again." : `Something went wrong (${res.status}).`);
+    if (res.status === 413) detail = "That file is too big. Try a smaller photo or a shorter video.";
     if (res.status === 429) detail = "Too many requests, try again later.";
     throw new ApiError(detail, res.status);
   }
   if (res.status === 204) return undefined as R;
   return res.json() as Promise<R>;
 }
+
+/** Replace the message for specific HTTP statuses, keeping the status. */
+async function mapErr<R>(p: Promise<R>, map: Record<number, string>): Promise<R> {
+  try {
+    return await p;
+  } catch (e) {
+    if (e instanceof ApiError && map[e.status]) throw new ApiError(map[e.status], e.status);
+    throw e;
+  }
+}
+const UNREADABLE_VIDEO = { 422: "We could not read that video, please try again." };
 
 const json = (method: string, body: unknown): RequestInit => ({
   method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -45,6 +75,13 @@ function form(fields: Record<string, string | number | boolean | Blob | undefine
   return { method: "POST", body: fd };
 }
 
+/** Several files under one field name (the contract's `files`). */
+function formFiles(field: string, files: File[]): RequestInit {
+  const fd = new FormData();
+  for (const f of files) fd.append(field, f);
+  return { method: "POST", body: fd };
+}
+
 const qs = (o: Record<string, string | undefined>) => {
   const p = new URLSearchParams(Object.entries(o).filter(([, v]) => v) as [string, string][]).toString();
   return p ? `?${p}` : "";
@@ -53,7 +90,7 @@ const qs = (o: Record<string, string | undefined>) => {
 export const api = {
   health: () => req<T.Health>("/health"),
   seed: () => req<T.SeedResult>("/dev/seed", { method: "POST" }),
-  
+
   // dev/admin
   usage: () => req<T.UsageOut>("/meta/usage"),
   cleanup: () => req<T.CleanupResult>("/meta/cleanup", { method: "POST" }),
@@ -89,46 +126,28 @@ export const api = {
 
   // guest
   guest: (token: string) => req<T.GuestProperty>(`/guest/${token}`),
-  stayHome: (token: string) => req<any>(`/s/${token}`),
-  createStay: (pid: string, b?: { reservation_ref?: string; guest_name?: string }) => req<any>(`/properties/${pid}/stays`, json("POST", b ?? {})),
-  stayUploadVideo: (token: string, roomId: string, file: File) => req<any>(`/s/${token}/checkout/rooms/${roomId}/video`, form({ file })),
-  stayReport: (token: string, text: string, file?: File) => req<any>(`/s/${token}/checkout/report`, form({ text, file })),
-  staySubmit: (token: string) => req<any>(`/s/${token}/checkout/submit`, { method: "POST" }),
-  stayReceipt: (token: string) => req<any>(`/s/${token}/checkout/receipt`),
-  stayLateNote: (token: string, text: string) => req<any>(`/s/${token}/checkout/notes`, form({ text })),
   guestAsk: (token: string, file: File) => req<T.GuestAnswer>(`/guest/${token}/ask`, form({ file })),
+
+  // stays and guest checkout (PROVISIONAL: not in the shared contract yet, see StayJson)
+  createStay: (pid: string, b?: { reservation_ref?: string; guest_name?: string }) =>
+    req<StayJson>(`/properties/${pid}/stays`, json("POST", b ?? {})),
+  stayHome: (token: string) => req<StayJson>(`/s/${token}`),
+  stayUploadVideo: (token: string, roomId: string, file: File) =>
+    mapErr(req<StayJson>(`/s/${token}/checkout/rooms/${roomId}/video`, form({ file })), UNREADABLE_VIDEO),
+  stayReport: (token: string, text: string, file?: File) =>
+    req<StayJson>(`/s/${token}/checkout/report`, form({ text, file })),
+  staySubmit: (token: string) => req<StayJson>(`/s/${token}/checkout/submit`, { method: "POST" }),
+  stayReceipt: (token: string) => req<StayJson>(`/s/${token}/checkout/receipt`),
+  stayLateNote: (token: string, text: string) => req<StayJson>(`/s/${token}/checkout/notes`, form({ text })),
 
   // audits
   createAudit: (pid: string) => req<T.AuditCreated>(`/properties/${pid}/audits`, { method: "POST" }),
-  uploadAuditVideo: async (aid: string, rid: string, file: File) => {
-    try { 
-      return await req<T.UploadAck>(`/audits/${aid}/rooms/${rid}/video`, form({ file })); 
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 422) {
-        throw new Error("We could not read that video, please try again.");
-      }
-      throw e;
-    }
-  },
-  uploadAuditFrames: async (aid: string, rid: string, files: File[]) => {
-    const fd = new FormData();
-    for (const f of files) fd.append("files", f);
-    try {
-      const res = await fetch(`${API_URL}/api/audits/${aid}/rooms/${rid}/frames`, { method: "POST", body: fd });
-      if (!res.ok) {
-        let detail = `Something went wrong (${res.status}).`;
-        try { const b = await res.json(); if (typeof b.detail === "string") detail = b.detail; } catch { /* */ }
-        if (res.status === 413) detail = "That file is too large, try a smaller one.";
-        if (res.status === 422) detail = "We could not read that file, please try again.";
-        throw new ApiError(detail, res.status);
-      }
-      if (res.status === 204) return undefined as unknown as T.UploadAck;
-      return (await res.json()) as T.UploadAck;
-    } catch (e) {
-      if (e instanceof ApiError) throw e;
-      throw new Error("Cannot reach the server. Check your connection and try again.");
-    }
-  },
+  uploadAuditVideo: (aid: string, rid: string, file: File) =>
+    mapErr(req<T.UploadAck>(`/audits/${aid}/rooms/${rid}/video`, form({ file })), UNREADABLE_VIDEO),
+  uploadAuditFrames: (aid: string, rid: string, files: File[]) =>
+    mapErr(req<T.UploadAck>(`/audits/${aid}/rooms/${rid}/frames`, formFiles("files", files)), {
+      422: "We could not read that file, please try again.",
+    }),
   runAudit: (aid: string) => req<T.RunAck>(`/audits/${aid}/run`, { method: "POST" }),
   getAudit: (aid: string) => req<T.AuditDetail>(`/audits/${aid}`),
   patchFinding: (id: string, b: { role: T.Role; resolution?: T.Resolution; note?: string }) =>

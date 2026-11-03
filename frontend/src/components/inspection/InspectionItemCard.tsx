@@ -1,27 +1,37 @@
 import { useState } from "react";
-import { LinkButton } from "@/components/LinkButton";
-import { Camera, ChevronRight, FolderOpen, Package, Sparkles } from "lucide-react";
+import { Camera, Check, ChevronRight, FolderOpen, Package, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { resultLabel, resultTone } from "@/lib/labels";
 import type { InspectionItemOut, ItemResult, Role } from "@/lib/types";
 import { useRole } from "@/hooks/useRole";
 import { FilePicker } from "@/components/FilePicker";
+import { LinkButton } from "@/components/LinkButton";
 import { Pill } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
-const RESULTS: ItemResult[] = ["ok", "not_seen", "misplaced", "missing", "damaged"];
+const RESULTS = ["ok", "not_seen", "misplaced", "missing", "damaged"] as const satisfies readonly ItemResult[];
 
-// Same colour meaning as the rest of the app: green ok, amber needs a look, red missing, orange damaged.
-const DOT: Record<ItemResult, string> = {
+// Red = missing only. Amber = needs a look. Green = ok.
+const DOT: Record<(typeof RESULTS)[number], string> = {
   ok: "var(--ok)",
-  not_seen: "var(--muted-foreground)",
+  not_seen: "var(--warn)",
   misplaced: "var(--warn)",
   missing: "var(--danger)",
   damaged: "var(--chart-6)",
-} as Record<ItemResult, string>;
+};
+
+const EDGE: Partial<Record<ItemResult, string>> = {
+  ok: "card-ok",
+  missing: "card-danger",
+  misplaced: "card-warn",
+  not_seen: "card-warn",
+  damaged: "card-warn",
+  low_stock: "card-warn",
+};
 
 export function InspectionItemCard({
   item,
@@ -71,20 +81,16 @@ export function InspectionItemCard({
   const saveCount = () => {
     const n = Number(count);
     if (!Number.isInteger(n) || n < 0) return toast.error("Enter a whole number.");
-    return run(() => api.patchInspectionItem(item.id, { ...base(), observed_quantity: n }));
+    return run(async () => {
+      await api.patchInspectionItem(item.id, { ...base(), observed_quantity: n });
+      toast.success("Count saved");
+    });
   };
   const addPhoto = (f: File) =>
     run(() => api.inspectionItemPhoto(item.id, f, actor.trim(), role), setPhotoBusy);
 
-  const edge =
-    item.result === "ok"
-      ? "card-ok"
-      : ["misplaced", "missing", "damaged"].includes(item.result)
-        ? "card-warn"
-        : "";
-
   return (
-    <Card className={`inspection-card gap-3 p-4 ${edge}`}>
+    <Card className={cn("inspection-card gap-3 p-4", EDGE[item.result])}>
       <div className="flex gap-3">
         {item.reference_crop_url ? (
           <img
@@ -103,17 +109,12 @@ export function InspectionItemCard({
         <div className="min-w-0 flex-1 space-y-1">
           <p className="font-display text-lg font-bold leading-tight">{item.label}</p>
           <p className="text-sm text-muted-foreground">
-            Expected:{" "}
-            <span className="font-semibold text-foreground">{item.expected_quantity}</span>
+            Expected: <span className="font-semibold text-foreground">{item.expected_quantity}</span>
             {item.min_quantity != null && ` (min ${item.min_quantity})`}
           </p>
-          {item.location_path && (
-            <p className="text-xs text-muted-foreground">Usually: {item.location_path}</p>
-          )}
+          {item.location_path && <p className="text-xs text-muted-foreground">Usually: {item.location_path}</p>}
           {item.alternate_locations.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              Also OK: {item.alternate_locations.join(", ")}
-            </p>
+            <p className="text-xs text-muted-foreground">Also OK: {item.alternate_locations.join(", ")}</p>
           )}
         </div>
       </div>
@@ -121,7 +122,7 @@ export function InspectionItemCard({
       <div className="flex flex-wrap gap-1.5">
         <Pill tone={resultTone[item.result]}>{resultLabel[item.result]}</Pill>
         {consumable && <Pill>Consumable</Pill>}
-        {item.high_value && !item.photo_url && <Pill tone="info">Photo required</Pill>}
+        {item.high_value && !item.photo_url && <Pill tone="warn">Photo required</Pill>}
         {item.checked_by && <Pill>Checked by {item.checked_by}</Pill>}
       </div>
 
@@ -160,48 +161,26 @@ export function InspectionItemCard({
       {consumable ? (
         <div className="flex items-end gap-2">
           <div className="flex-1 space-y-1">
-            <label htmlFor={`c-${item.id}`} className="text-sm font-semibold">
-              Counted
-            </label>
+            <label htmlFor={`c-${item.id}`} className="text-sm font-semibold">Counted</label>
             <Input
-              id={`c-${item.id}`}
-              type="number"
-              inputMode="numeric"
-              min={0}
-              className="h-12"
-              disabled={off}
-              value={count}
-              onChange={(e) => setCount(e.target.value)}
+              id={`c-${item.id}`} type="number" inputMode="numeric" min={0} className="h-12"
+              disabled={off} value={count} onChange={(e) => setCount(e.target.value)}
             />
           </div>
-          <Button className="btn-tap" disabled={off} onClick={saveCount}>
-            Save count
-          </Button>
+          <Button className="btn-tap" disabled={off} onClick={saveCount}>Save count</Button>
         </div>
       ) : (
         <>
           {counted && (
             <div className="flex items-center gap-2">
-              <label htmlFor={`c-${item.id}`} className="text-sm font-semibold">
-                Counted
-              </label>
+              <label htmlFor={`c-${item.id}`} className="text-sm font-semibold">Counted</label>
               <Input
-                id={`c-${item.id}`}
-                type="number"
-                inputMode="numeric"
-                min={0}
-                className="h-12 w-24"
-                disabled={off}
-                value={count}
-                onChange={(e) => setCount(e.target.value)}
+                id={`c-${item.id}`} type="number" inputMode="numeric" min={0} className="h-12 w-24"
+                disabled={off} value={count} onChange={(e) => setCount(e.target.value)}
               />
             </div>
           )}
-          <div
-            className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-            role="group"
-            aria-label={`Result for ${item.label}`}
-          >
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label={`Result for ${item.label}`}>
             {RESULTS.map((r) => {
               const on = item.result === r;
               return (
@@ -211,21 +190,14 @@ export function InspectionItemCard({
                   aria-pressed={on}
                   variant="outline"
                   className="btn-tap justify-start gap-2 border-2"
-                  style={
-                    on
-                      ? {
-                          borderColor: DOT[r],
-                          background: `color-mix(in oklab, ${DOT[r]} 14%, transparent)`,
-                        }
-                      : undefined
-                  }
+                  style={on ? { borderColor: DOT[r], background: `color-mix(in oklab, ${DOT[r]} 14%, transparent)` } : undefined}
                   onClick={() => setResult(r)}
                 >
-                  <span
-                    className="size-3 shrink-0 rounded-full"
-                    style={{ background: DOT[r] }}
-                    aria-hidden
-                  />
+                  {on ? (
+                    <Check className="size-4 shrink-0" style={{ color: DOT[r] }} aria-hidden />
+                  ) : (
+                    <span className="size-3 shrink-0 rounded-full" style={{ background: DOT[r] }} aria-hidden />
+                  )}
                   {resultLabel[r]}
                 </Button>
               );
@@ -247,13 +219,8 @@ export function InspectionItemCard({
       />
 
       {item.discrepancy_id && (
-        <LinkButton
-          variant="outline"
-          className="btn-tap"
-          to={withRole(`/cases/${item.discrepancy_id}`)}
-        >
-          <FolderOpen className="size-5" /> View case{" "}
-          <ChevronRight className="ml-auto size-4" aria-hidden />
+        <LinkButton variant="outline" className="btn-tap" to={withRole(`/cases/${item.discrepancy_id}`)}>
+          <FolderOpen className="size-5" /> View case <ChevronRight className="ml-auto size-4" aria-hidden />
         </LinkButton>
       )}
       {error && (

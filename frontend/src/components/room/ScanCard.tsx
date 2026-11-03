@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, ScanLine, Video } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -18,6 +18,10 @@ export function ScanCard({ roomId, suggested, onDone }: {
   const [capture, setCapture] = useState<Capture | null>(null);
   const [error, setError] = useState<string | null>(null);
   const retry = useRef<(() => void) | null>(null);
+  const previewRef = useRef<string | null>(null);
+
+  // release the last preview when the card goes away
+  useEffect(() => () => { if (previewRef.current) URL.revokeObjectURL(previewRef.current); }, []);
 
   async function run(kind: "photo" | "video", file: File) {
     const preview = kind === "photo" ? URL.createObjectURL(file) : null;
@@ -27,10 +31,17 @@ export function ScanCard({ roomId, suggested, onDone }: {
       const r: BaselineResult = kind === "photo"
         ? await api.baselinePhoto(roomId, file, important ? "high" : "normal")
         : await api.baselineVideo(roomId, file);
+      // success: the new preview replaces the old one, so release the old one
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+      previewRef.current = preview;
       setCapture({ preview, name: file.name, ids: r.items.map((i) => i.id) });
       if (r.items.length) toast.success(`${r.items.length} items found`);
       onDone();
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) {
+      // failure: the new preview was never shown, so release it. The old one stays on screen.
+      if (preview) URL.revokeObjectURL(preview);
+      setError((e as Error).message);
+    }
     finally { setBusy(null); }
   }
 

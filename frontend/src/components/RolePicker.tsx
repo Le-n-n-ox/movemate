@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Brush, KeyRound, Link2, Loader2, Users, type LucideIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,7 @@ const OPTIONS: { id: Choice; icon: LucideIcon; name: string; text: string; note?
   { id: "guest", icon: Users, name: "Guest", text: "Get help with an appliance.", note: "Needs your guest link" },
 ];
 
-const EASE = [0.2, 0.7, 0.2, 1] as const;
-
+const EASE: [number, number, number, number] = [0.2, 0.7, 0.2, 1];
 const LIST = { hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } } };
 const ITEM = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE } } };
 
@@ -101,7 +100,8 @@ export function RolePicker({ open, onClose }: { open: boolean; onClose: () => vo
       aria-labelledby="role-title"
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto overflow-x-hidden rounded-2xl border bg-card p-0 text-card-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-in open:fade-in-0 open:zoom-in-95"
     >
-      <MotionConfig reducedMotion="user">
+      {/* Mounted only while open, so the entrance animations play every time it opens. */}
+      {open && (
         <div className="hero-glow relative">
           <div className="space-y-5 p-6">
             <RoleBadges />
@@ -123,25 +123,24 @@ export function RolePicker({ open, onClose }: { open: boolean; onClose: () => vo
                   </div>
                   <motion.div className="space-y-2.5" variants={LIST} initial="hidden" animate="show">
                     {OPTIONS.map(({ id, icon: Icon, name, text, note }) => (
-                      <motion.button
-                        key={id} type="button" onClick={() => choose(id)} variants={ITEM}
-                        whileTap={{ scale: 0.985 }}
-                        className="group row-link w-full text-left focus-visible:ring-2 focus-visible:ring-primary"
-                      >
-                        <span className="icon-badge icon-badge-lg tile transition-transform duration-200 group-hover:-rotate-6 group-hover:scale-110">
-                          <Icon className="size-5" aria-hidden />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex flex-wrap items-center gap-2">
-                            <span className="font-display text-lg font-bold">{name}</span>
-                            {note && (
-                              <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground">{note}</span>
-                            )}
+                      <motion.div key={id} variants={ITEM}>
+                        {/* wrapper animates the entrance; the button keeps its CSS hover and press */}
+                        <button type="button" onClick={() => choose(id)} className="group row-link w-full text-left">
+                          <span className="icon-badge icon-badge-lg tile transition-transform duration-200 group-hover:-rotate-6 group-hover:scale-110">
+                            <Icon className="size-5" aria-hidden />
                           </span>
-                          <span className="block text-sm text-muted-foreground">{text}</span>
-                        </span>
-                        <ArrowRight className="row-chevron size-5 shrink-0 text-muted-foreground" aria-hidden />
-                      </motion.button>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex flex-wrap items-center gap-2">
+                              <span className="font-display text-lg font-bold">{name}</span>
+                              {note && (
+                                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground">{note}</span>
+                              )}
+                            </span>
+                            <span className="block text-sm text-muted-foreground">{text}</span>
+                          </span>
+                          <ArrowRight className="row-chevron size-5 shrink-0 text-muted-foreground" aria-hidden />
+                        </button>
+                      </motion.div>
                     ))}
                   </motion.div>
                   <Button variant="ghost" className="btn-tap w-full" onClick={() => ref.current?.close()}>Cancel</Button>
@@ -150,6 +149,7 @@ export function RolePicker({ open, onClose }: { open: boolean; onClose: () => vo
                 <motion.form
                   key="guest"
                   onSubmit={goGuest}
+                  noValidate
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
@@ -166,16 +166,20 @@ export function RolePicker({ open, onClose }: { open: boolean; onClose: () => vo
                     <Label htmlFor="guest-token">Guest link or code</Label>
                     <div className="relative">
                       <Link2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                      <Input id="guest-token" className="h-12 pl-9" autoFocus autoCapitalize="none" autoCorrect="off"
+                      <Input
+                        id="guest-token" className="h-12 pl-9" autoFocus autoCapitalize="none" autoCorrect="off"
                         aria-invalid={!!error} aria-describedby={error ? "guest-error" : "guest-hint"}
-                        value={value} onChange={(e) => setValue(e.target.value)} />
+                        value={value} onChange={(e) => setValue(e.target.value)}
+                      />
                     </div>
                     <p id="guest-hint" className="text-xs text-muted-foreground">The code is the part after /g/ in the link.</p>
                   </div>
                   <AnimatePresence>
                     {error && (
                       <motion.p
-                        id="guest-error" role="alert"
+                        key={error}
+                        id="guest-error"
+                        role="alert"
                         initial={{ opacity: 0, x: 0 }}
                         animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
                         exit={{ opacity: 0 }}
@@ -200,7 +204,7 @@ export function RolePicker({ open, onClose }: { open: boolean; onClose: () => vo
             <Steps step={step} />
           </div>
         </div>
-      </MotionConfig>
+      )}
     </dialog>
   );
 }

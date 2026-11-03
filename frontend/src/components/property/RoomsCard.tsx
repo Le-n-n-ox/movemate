@@ -42,7 +42,11 @@ export function RoomsCard({
 
   return (
     <Card className="gap-3 p-4">
-      <h2 className="text-lg font-semibold">Rooms</h2>
+      <h2 className="card-title">
+        <span className="icon-badge"><DoorOpen className="size-5" aria-hidden /></span>
+        Rooms
+        {rooms.length > 0 && <span className="text-sm font-medium text-muted-foreground">{rooms.length}</span>}
+      </h2>
       {rooms.length === 0 && (
         <EmptyState
           icon={<DoorOpen className="size-8" />}
@@ -50,45 +54,50 @@ export function RoomsCard({
           hint="Add your first room below."
         />
       )}
-      <ul className="space-y-2">
-        {rooms.map((r) => (
-          <li key={r.id}>
-            <Link
-              to={withRole(`/properties/${pid}/rooms/${r.id}`)}
-              className="flex min-h-14 items-center gap-3 rounded-lg border p-3 active:bg-accent"
-            >
-              {r.reference_photo_url ? (
-                <img
-                  src={r.reference_photo_url}
-                  alt={`${r.name} reference`}
-                  className="size-12 shrink-0 rounded-md object-cover"
-                />
-              ) : (
-                <div className="grid size-12 shrink-0 place-items-center rounded-md bg-muted">
-                  <DoorOpen
-                    className="size-5 text-muted-foreground"
-                    aria-hidden
+      <ul className="stagger space-y-2">
+        {rooms.map((r) => {
+          const total = r.confirmed_items + r.suggested_items;
+          const pct = total ? Math.round((r.confirmed_items / total) * 100) : 0;
+          return (
+            <li key={r.id}>
+              <Link to={withRole(`/properties/${pid}/rooms/${r.id}`)} className="row-link group">
+                {r.reference_photo_url ? (
+                  <img
+                    src={r.reference_photo_url}
+                    alt={`${r.name} reference`}
+                    className="size-12 shrink-0 rounded-lg object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                </div>
-              )}
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="truncate font-medium">{r.name}</p>
-                <div className="flex flex-wrap gap-1">
-                  <Pill tone="brand">{r.confirmed_items} items</Pill>
-                  {r.suggested_items > 0 && (
-                    <Pill tone="info">{r.suggested_items} to review</Pill>
+                ) : (
+                  <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-muted">
+                    <DoorOpen className="size-5 text-muted-foreground" aria-hidden />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <p className="truncate font-semibold">{r.name}</p>
+                  <div className="flex flex-wrap gap-1">
+                    <Pill tone="brand">{r.confirmed_items} items</Pill>
+                    {r.suggested_items > 0 && <Pill tone="info">{r.suggested_items} to review</Pill>}
+                  </div>
+                  {total > 0 && (
+                    <div
+                      className="meter"
+                      role="progressbar"
+                      aria-label={`${r.name} items confirmed`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={pct}
+                    >
+                      <span style={{ width: `${pct}%` }} />
+                    </div>
                   )}
                 </div>
-              </div>
-              <ChevronRight
-                className="size-5 shrink-0 text-muted-foreground"
-                aria-hidden
-              />
-            </Link>
-          </li>
-        ))}
+                <ChevronRight className="row-chevron size-5 shrink-0 text-muted-foreground" aria-hidden />
+              </Link>
+            </li>
+          );
+        })}
       </ul>
-      <form onSubmit={add} className="grid grid-cols-[1fr_auto] gap-2">
+      <form onSubmit={add} className="grid grid-cols-[1fr_auto] gap-2 border-t pt-3">
         <Input
           aria-label="Room name"
           placeholder="Kitchen"

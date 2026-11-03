@@ -111,7 +111,7 @@ export default function Room() {
           </section>
 
           <div id="places" className="jump-target">
-            <PlacesCard pid={id} room={room.data} places={places.data ?? []} onChanged={refresh} />
+            <PlacesCard key={room.data.id} pid={id} room={room.data} places={places.data ?? []} onChanged={refresh} />
           </div>
         </div>
       )}

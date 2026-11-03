@@ -1,6 +1,5 @@
 import { Check, Monitor, Moon, Palette, Sun, type LucideIcon } from "lucide-react";
 import { useTheme, type Accent, type Mode } from "@/hooks/useTheme";
-
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -10,20 +9,21 @@ const MODES: [Mode, string, LucideIcon][] = [
   ["system", "System", Monitor],
 ];
 
-// Match the accent themes in index.css so the swatch is the colour you get.
-const ACCENTS: [Accent, string, string][] = [
-  ["teal", "Teal", "oklch(0.52 0.12 190)"],
-  ["indigo", "Indigo", "oklch(0.52 0.2 275)"],
-  ["violet", "Violet", "oklch(0.54 0.23 305)"],
-  ["slate", "Slate", "oklch(0.4 0.04 250)"],
+// Exact --primary values from index.css (light, dark), so the swatch is the colour you get.
+const ACCENTS: { id: Accent; label: string; light: string; dark: string }[] = [
+  { id: "teal", label: "Teal", light: "#0F766E", dark: "#2DD4BF" },
+  { id: "indigo", label: "Indigo", light: "oklch(0.52 0.2 275)", dark: "oklch(0.74 0.15 275)" },
+  { id: "violet", label: "Violet", light: "oklch(0.54 0.23 305)", dark: "oklch(0.76 0.16 305)" },
+  { id: "slate", label: "Slate", light: "oklch(0.4 0.04 250)", dark: "oklch(0.85 0.03 250)" },
 ];
 
 export function AppearanceCard() {
-  const { mode, accent, setMode, setAccent } = useTheme();
-  const accentName = ACCENTS.find(([v]) => v === accent)?.[1];
+  const { mode, resolved, accent, setMode, setAccent } = useTheme();
+  const dark = resolved === "dark";
+  const accentName = ACCENTS.find((a) => a.id === accent)?.label;
 
   return (
-    <Card className="card-lift no-print gap-4 p-4">
+    <Card className="no-print gap-4 p-4">
       <h2 className="card-title">
         <span className="icon-badge"><Palette className="size-5" aria-hidden /></span> Appearance
       </h2>
@@ -38,7 +38,7 @@ export function AppearanceCard() {
               aria-pressed={mode === v}
               onClick={() => setMode(v)}
               className={cn(
-                "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all duration-200",
+                "inline-flex min-h-12 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all duration-200",
                 mode === v
                   ? "bg-card text-primary shadow-sm ring-1 ring-primary/30"
                   : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
@@ -52,22 +52,22 @@ export function AppearanceCard() {
 
       <div className="space-y-2">
         <p className="flex items-baseline justify-between text-sm font-semibold">
-          Accent <span className="font-normal text-muted-foreground">{accentName}</span>
+          Accent <span className="font-normal text-muted-foreground" aria-live="polite">{accentName}</span>
         </p>
         <div role="group" aria-label="Accent colour" className="flex flex-wrap gap-3">
-          {ACCENTS.map(([v, label, color]) => {
-            const on = accent === v;
+          {ACCENTS.map(({ id, label, light, dark: darkColor }) => {
+            const on = accent === id;
             return (
               <button
-                key={v}
+                key={id}
                 type="button"
                 aria-pressed={on}
                 aria-label={`${label} accent`}
                 title={label}
-                onClick={() => setAccent(v)}
-                style={{ background: color }}
+                onClick={() => setAccent(id)}
+                style={{ background: dark ? darkColor : light, color: dark ? "#10211F" : "#fff" }}
                 className={cn(
-                  "grid size-12 place-items-center rounded-full text-white shadow-sm ring-offset-2 ring-offset-card transition-transform duration-200 hover:scale-110 active:scale-95",
+                  "grid size-12 place-items-center rounded-full shadow-sm ring-offset-2 ring-offset-card transition-transform duration-200 hover:scale-110 active:scale-95",
                   on && "ring-2 ring-foreground",
                 )}
               >

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { Building2, Plus } from "lucide-react";
+import { AlertTriangle, Building2, ChevronRight, FlaskConical, Plus, Users } from "lucide-react";
 
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -75,18 +75,18 @@ export default function Properties() {
 
   return (
     <Shell title="Properties">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
         <div>
-          <h1 className="font-display text-4xl font-bold tracking-tight">Properties</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {total} {total === 1 ? "property" : "properties"}
+          <h1 className="font-display text-4xl font-extrabold tracking-tight">Properties</h1>
+          <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span className="rounded-full border bg-card px-2.5 py-0.5 font-medium text-foreground">
+              {total} {total === 1 ? "property" : "properties"}
+            </span>
             {needsAttention > 0 && (
-              <>
-                ,{" "}
-                <span className="font-medium text-info">
-                  {needsAttention} need{needsAttention === 1 ? "s" : ""} attention
-                </span>
-              </>
+              <span className="inline-flex items-center gap-1 rounded-full bg-warn/20 px-2.5 py-0.5 font-semibold text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="size-3.5" aria-hidden />
+                {needsAttention} need{needsAttention === 1 ? "s" : ""} attention
+              </span>
             )}
           </p>
         </div>
@@ -99,7 +99,9 @@ export default function Properties() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add a property</DialogTitle>
+                <DialogTitle className="card-title">
+                  <span className="icon-badge"><Plus className="size-5" aria-hidden /></span> Add a property
+                </DialogTitle>
               </DialogHeader>
               <form onSubmit={create} className="space-y-3">
                 <div className="space-y-1.5">
@@ -147,7 +149,7 @@ export default function Properties() {
                   </div>
                 </div>
                 <Button type="submit" disabled={busy} className="btn-tap w-full">
-                  Create property
+                  {busy ? "Creating..." : "Create property"}
                 </Button>
               </form>
             </DialogContent>
@@ -171,50 +173,63 @@ export default function Properties() {
         />
       )}
       {!list.loading && !list.error && props.length > 0 && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3 auto-rows-[220px]">
+        <div className="stagger mt-8 grid auto-rows-[220px] gap-5 md:grid-cols-2 lg:grid-cols-3">
           {props.map((p: any, i: number) => {
             const feature = i === 0 && p.open_discrepancies > 0;
+            const initial = (p.name ?? "?").charAt(0).toUpperCase();
             return (
               <Link
                 key={p.id}
                 to={withRole(`/properties/${p.id}`)}
-                className={`group block ${feature ? "md:col-span-2" : ""}`}
+                className={`group block rounded-2xl outline-none ${feature ? "md:col-span-2" : ""}`}
               >
-                <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-md">
-                  <div className={`relative bg-muted ${feature ? "h-40" : "h-28"}`}>
+                <div
+                  className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition-all duration-300 group-hover:-translate-y-1 group-hover:[box-shadow:var(--shadow-lift)] group-focus-visible:ring-2 group-focus-visible:ring-primary ${
+                    p.open_discrepancies > 0 ? "card-warn" : ""
+                  }`}
+                  style={{ boxShadow: "var(--shadow-rest)" }}
+                >
+                  <div className={`relative overflow-hidden bg-muted ${feature ? "h-40" : "h-28"}`}>
                     {p.cover_photo ? (
                       <img
                         src={p.cover_photo}
                         alt={p.name}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-muted-foreground">
-                        <Building2 className="size-8" />
+                      <div className="tile relative grid h-full place-items-center">
+                        <span className="bg-grid absolute inset-0 opacity-30" aria-hidden />
+                        <span className="relative font-display text-5xl font-extrabold text-primary-foreground/90 transition-transform duration-500 group-hover:scale-110" aria-hidden>
+                          {initial}
+                        </span>
                       </div>
                     )}
                     {p.open_discrepancies > 0 && (
-                      <span className="absolute left-3 top-3 rounded-full bg-card/95 px-3 py-1 text-xs font-semibold text-foreground shadow-sm">
-                        {p.open_discrepancies} open cases
+                      <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-card/95 px-3 py-1 text-xs font-semibold text-foreground shadow-sm backdrop-blur">
+                        <AlertTriangle className="size-3.5 text-warn" aria-hidden />
+                        {p.open_discrepancies} open {p.open_discrepancies === 1 ? "case" : "cases"}
                       </span>
                     )}
                   </div>
                   <div className="flex flex-1 flex-col justify-between p-4">
-                    <div>
-                      <p className="font-display text-lg font-semibold">{p.name}</p>
-                      {p.address && (
-                        <p className="text-sm text-muted-foreground truncate">{p.address}</p>
-                      )}
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-display text-lg font-bold">{p.name}</p>
+                        {p.address && (
+                          <p className="truncate text-sm text-muted-foreground">{p.address}</p>
+                        )}
+                      </div>
+                      <ChevronRight className="mt-1 size-5 shrink-0 text-muted-foreground transition-all duration-200 group-hover:translate-x-1 group-hover:text-primary" aria-hidden />
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
                       {p.property_type && (
-                        <span className="rounded-full bg-secondary px-2 py-0.5">
+                        <span className="rounded-full bg-secondary px-2.5 py-0.5 font-medium">
                           {p.property_type}
                         </span>
                       )}
                       {p.capacity && (
-                        <span className="rounded-full bg-secondary px-2 py-0.5">
-                          {p.capacity} guests
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 font-medium">
+                          <Users className="size-3" aria-hidden /> {p.capacity} guests
                         </span>
                       )}
                     </div>
@@ -226,16 +241,11 @@ export default function Properties() {
         </div>
       )}
 
-      {role === "host" && props.length === 0 && (
+      {role === "host" && props.length === 0 && !list.loading && (
         <div className="mt-6 flex justify-center">
-          <button
-            type="button"
-            onClick={seed}
-            disabled={busy}
-            className="text-sm text-muted-foreground hover:text-foreground underline"
-          >
-            Load demo data (dev)
-          </button>
+          <Button type="button" variant="ghost" onClick={seed} disabled={busy} className="text-muted-foreground">
+            <FlaskConical className="size-4" /> Load demo data (dev)
+          </Button>
         </div>
       )}
     </Shell>
