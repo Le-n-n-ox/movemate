@@ -9,6 +9,7 @@ import Inspection from "@/pages/Inspection";
 import Readiness from "@/pages/Readiness";
 import Audit from "@/pages/Audit";
 import Guest from "@/pages/Guest";
+import Stay from "@/pages/Stay";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
       <Route path="/inspection/:id/readiness" element={<Readiness />} />
       <Route path="/audit/:auditId" element={<Audit />} />
       <Route path="/g/:token" element={<Guest />} />
+      <Route path="/s/:stayToken" element={<Stay />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .db import Base, SessionLocal, engine
-from .routers import audits, baseline, discrepancies, guest, inspections, items, properties, meta, meta_api
+from .routers import audits, baseline, discrepancies, guest, inspections, items, properties, stays, meta, meta_api
 from .schemas import Health
 from .services import storage
 
@@ -64,7 +64,7 @@ def health():
     return Health(status="ok", mock_models=settings.mock_models)
 
 
-for r in (properties.router, baseline.router, items.router, guest.router, audits.router, inspections.router, discrepancies.router):
+for r in (properties.router, baseline.router, items.router, guest.router, audits.router, inspections.router, discrepancies.router, stays.router):
     api.include_router(r)
 if settings.app_env == "dev":
     from .routers import dev

@@ -89,6 +89,13 @@ export const api = {
 
   // guest
   guest: (token: string) => req<T.GuestProperty>(`/guest/${token}`),
+  stayHome: (token: string) => req<any>(`/s/${token}`),
+  createStay: (pid: string, b?: { reservation_ref?: string; guest_name?: string }) => req<any>(`/properties/${pid}/stays`, json("POST", b ?? {})),
+  stayUploadVideo: (token: string, roomId: string, file: File) => req<any>(`/s/${token}/checkout/rooms/${roomId}/video`, form({ file })),
+  stayReport: (token: string, text: string, file?: File) => req<any>(`/s/${token}/checkout/report`, form({ text, file })),
+  staySubmit: (token: string) => req<any>(`/s/${token}/checkout/submit`, { method: "POST" }),
+  stayReceipt: (token: string) => req<any>(`/s/${token}/checkout/receipt`),
+  stayLateNote: (token: string, text: string) => req<any>(`/s/${token}/checkout/notes`, form({ text })),
   guestAsk: (token: string, file: File) => req<T.GuestAnswer>(`/guest/${token}/ask`, form({ file })),
 
   // audits
