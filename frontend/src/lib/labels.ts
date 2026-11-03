@@ -30,17 +30,17 @@ export const resultLabel: Record<ItemResult, string> = {
   missing: "Missing", damaged: "Damaged", low_stock: "Low stock",
 };
 
-export const resultTone: Record<ItemResult, "neutral" | "ok" | "warn" | "danger"> = {
-  pending: "neutral", ok: "ok", not_seen: "warn", misplaced: "warn",
-  missing: "danger", damaged: "danger", low_stock: "warn",
+export const resultTone: Record<ItemResult, "neutral" | "ok" | "warn" | "danger" | "info"> = {
+  pending: "neutral", ok: "ok", not_seen: "warn", misplaced: "info",
+  missing: "danger", damaged: "info", low_stock: "warn",
 };
 
 export const partLabel: Record<PartStatus, string> = {
   pending: "To do", in_progress: "In progress", done: "Done", not_applicable: "Not needed",
 };
 
-export const partTone: Record<PartStatus, "neutral" | "warn" | "ok"> = {
-  pending: "neutral", in_progress: "warn", done: "ok", not_applicable: "neutral",
+export const partTone: Record<PartStatus, "neutral" | "ok"> = {
+  pending: "neutral", in_progress: "neutral", done: "ok", not_applicable: "neutral",
 };
 
 
@@ -54,8 +54,8 @@ export const CONDITIONS: [ItemCondition, string][] = [
   ["damaged", "Damaged"], ["under_repair", "Under repair"], ["missing", "Missing"],
 ];
 
-export const conditionTone: Record<ItemCondition, "ok" | "warn" | "danger"> = {
-  new: "ok", good: "ok", worn: "warn", under_repair: "warn", damaged: "danger", missing: "danger",
+export const conditionTone: Record<ItemCondition, "ok" | "neutral" | "danger"> = {
+  new: "ok", good: "ok", worn: "neutral", under_repair: "neutral", damaged: "neutral", missing: "danger",
 };
 
 
@@ -68,8 +68,8 @@ export const caseStatusLabel: Record<CaseStatus, string> = {
   open: "Open", investigating: "Looking into it", resolved: "Resolved",
 };
 
-export const caseStatusTone: Record<CaseStatus, "danger" | "warn" | "ok"> = {
-  open: "danger", investigating: "warn", resolved: "ok",
+export const caseStatusTone: Record<CaseStatus, "neutral" | "info" | "ok"> = {
+  open: "neutral", investigating: "info", resolved: "ok",
 };
 
 export const OUTCOMES: [Outcome, string][] = [

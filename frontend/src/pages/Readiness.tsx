@@ -55,8 +55,8 @@ export default function Readiness() {
           </Card>
 
           {r.exception_note && (
-            <div className="rounded-lg border border-warn/40 bg-warn/15 p-4">
-              <p className="mb-1 flex items-center gap-2 font-semibold text-warn">
+            <div className="rounded-xl border bg-muted p-4">
+              <p className="mb-1 flex items-center gap-2 font-semibold text-foreground">
                 <span className="size-5" aria-hidden>⚠</span> Completed with an exception
               </p>
               <p>{r.exception_note}</p>
@@ -64,7 +64,7 @@ export default function Readiness() {
             </div>
           )}
 
-          <ListCard title="Blocking" tone="danger" hint="These must be resolved before the home is ready." items={r.blocking} />
+          <ListCard title="Blocking" hint="These must be resolved before the home is ready." items={r.blocking} />
           <ListCard title="Open cases" items={r.open_cases} />
           <ListCard title="Known gaps" hint="Recorded as missing. Nobody is asked to find these again." items={r.known_gaps} />
           <ListCard title="Low stock" items={r.low_stock} />

@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const base =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 text-base font-medium shadow-xs transition-colors active:scale-[0.98]";
+  "inline-flex min-h-12 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 text-base font-medium shadow-sm transition-all hover:shadow-md active:scale-95";
 const variants = {
-  default: "bg-primary text-primary-foreground hover:opacity-90",
+  default: "bg-primary text-primary-foreground hover:brightness-95",
   outline: "border border-input bg-card text-foreground hover:bg-accent",
 };
 

@@ -20,7 +20,7 @@ export function Shell({ title, back, backLabel = "Back", right, children }: {
           </Link>
         ) : <span />}
         <div className="flex items-center gap-1">
-          <Link to="/start" className="text-sm font-medium text-primary hover:underline">Switch role</Link>
+          <Link to="/start" className="inline-flex min-h-12 items-center text-sm font-medium text-primary hover:underline">Switch role</Link>
           {right}
           <ThemeToggle />
         </div>
@@ -61,7 +61,7 @@ const TONES = {
   neutral: "bg-muted text-muted-foreground",
   brand: "bg-accent text-accent-foreground",
   danger: "bg-danger/15 text-danger",
-  warn: "bg-warn/20 text-amber-800 dark:text-amber-300",
+  warn: "bg-warn/20 text-warn",
   info: "bg-info/15 text-info",
   ok: "bg-ok/15 text-ok",
 } as const;

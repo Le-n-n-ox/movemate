@@ -20,12 +20,12 @@ export function LandingHeader({ onOpenApp }: { onOpenApp: () => void }) {
         <a href="#top" className="flex min-h-12 items-center gap-2 font-display text-lg font-bold tracking-tight">
           <img src="/icon.svg" alt="" className="size-8 rounded-lg" /> MoveMate
         </a>
-        <nav className="hidden items-center gap-7 text-sm font-medium sm:flex" aria-label="Sections">
+        <nav className="hidden items-center gap-5 text-sm font-medium lg:flex" aria-label="Sections">
           {NAV.map((n) => (
             <a
               key={n.href}
               href={n.href}
-              className="text-muted-foreground underline-offset-8 transition-colors hover:text-foreground hover:underline decoration-primary decoration-2"
+              className="flex min-h-12 items-center text-muted-foreground underline-offset-8 transition-colors hover:text-foreground hover:underline decoration-primary decoration-2"
             >
               {n.label}
             </a>
@@ -42,8 +42,8 @@ export function LandingHeader({ onOpenApp }: { onOpenApp: () => void }) {
 
 const ROWS = [
   { room: "Living room", note: "Everything is in place", Icon: Check, tone: "bg-ok/15 text-ok" },
-  { room: "Kitchen", note: "Wine glass missing. Reported by cleaner", Icon: AlertTriangle, tone: "bg-warn/20 text-amber-800 dark:text-amber-300" },
-  { room: "Bathroom", note: "Toilet paper below minimum", Icon: AlertTriangle, tone: "bg-warn/20 text-amber-800 dark:text-amber-300" },
+  { room: "Kitchen", note: "Wine glass missing. Reported by cleaner", Icon: AlertTriangle, tone: "bg-danger/15 text-danger" },
+  { room: "Bathroom", note: "Toilet paper below minimum", Icon: AlertTriangle, tone: "bg-warn/20 text-warn" },
 ];
 
 function PhoneMock() {
@@ -52,7 +52,7 @@ function PhoneMock() {
       <div className="rounded-[2.5rem] border-2 border-border bg-background p-4 shadow-lg">
         <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-muted" />
         <div className="space-y-3">
-          <div className="rounded-2xl bg-warn/20 p-4 text-center">
+          <div className="rounded-2xl bg-accent p-4 text-center">
             <p className="text-xs text-muted-foreground">Next guest arrives Friday</p>
             <p className="font-display text-xl font-extrabold">Ready with exceptions</p>
           </div>
@@ -99,8 +99,7 @@ const ROLES = [
 export function Hero({ onOpenApp }: { onOpenApp: () => void }) {
   return (
     <MotionConfig reducedMotion="user">
-      <section id="top" className="hero-glow relative isolate overflow-hidden">
-        <div className="bg-grid absolute inset-0 -z-10" aria-hidden />
+      <section id="top" className="relative overflow-hidden">
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-14 lg:grid-cols-[1.1fr_0.9fr] lg:pt-24 lg:pb-24">
           <div className="space-y-7">
             <motion.h1

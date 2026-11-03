@@ -76,7 +76,7 @@ export function RoomsCard({
                 <div className="flex flex-wrap gap-1">
                   <Pill tone="brand">{r.confirmed_items} items</Pill>
                   {r.suggested_items > 0 && (
-                    <Pill tone="warn">{r.suggested_items} to review</Pill>
+                    <Pill tone="info">{r.suggested_items} to review</Pill>
                   )}
                 </div>
               </div>

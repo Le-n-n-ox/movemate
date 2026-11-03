@@ -31,7 +31,7 @@ export default function CaseDetail() {
             <div className="flex flex-wrap gap-1.5">
               <Pill tone={caseStatusTone[c.status]}>{caseStatusLabel[c.status]}</Pill>
               <Pill>{caseTypeLabel[c.type]}</Pill>
-              {c.blocks_readiness && <Pill tone="danger">Blocks readiness</Pill>}
+              {c.blocks_readiness && <Pill>Blocks readiness</Pill>}
               {c.assigned_to && <Pill>Assigned to {c.assigned_to}</Pill>}
             </div>
             <div className="flex gap-3 mt-3">

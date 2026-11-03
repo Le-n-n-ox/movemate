@@ -32,7 +32,7 @@ export default function Audit() {
   return (
     <Shell
       title="AI video check" back={pid ? `/properties/${pid}` : "/properties"} backLabel="Property"
-      right={health.data?.mock_models ? <Pill tone="warn">Demo mode</Pill> : undefined}
+      right={health.data?.mock_models ? <Pill tone="neutral">Demo mode</Pill> : undefined}
     >
       <p className="text-sm text-muted-foreground">Suggestions only. A person decides.</p>
 

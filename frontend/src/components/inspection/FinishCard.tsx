@@ -54,7 +54,7 @@ export function FinishCard({
           Inspection {statusLabel[insp.status].toLowerCase()}
         </h2>
         {insp.exception_note && (
-          <p className="warn-box">
+          <p className="rounded-xl border bg-muted p-3 text-sm">
             Exception by {insp.exception_by}: {insp.exception_note}
           </p>
         )}
@@ -69,15 +69,15 @@ export function FinishCard({
   }
 
   return (
-    <Card className={`gap-3 p-4 ${insp.can_complete ? "card-ok" : "card-warn"}`}>
+    <Card className={`gap-3 p-4 ${insp.can_complete ? "card-ok" : ""}`}>
       <h2 className="card-title">
-        <span className={`icon-badge ${insp.can_complete ? "bg-ok/15 text-ok" : "bg-warn/20 text-amber-800 dark:text-amber-300"}`}>
+        <span className={`icon-badge ${insp.can_complete ? "bg-ok/15 text-ok" : "bg-muted text-muted-foreground"}`}>
           {insp.can_complete ? <CheckCircle2 className="size-5" aria-hidden /> : <AlertTriangle className="size-5" aria-hidden />}
         </span>
         Finish
       </h2>
       {insp.blockers.length > 0 && (
-        <div className="warn-box">
+        <div className="rounded-xl border bg-muted p-3 text-sm">
           <p className="mb-1 font-semibold">Still to do</p>
           <ul className="list-disc space-y-1 pl-5">
             {insp.blockers.map((b, i) => (

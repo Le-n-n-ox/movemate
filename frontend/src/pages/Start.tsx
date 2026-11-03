@@ -11,9 +11,9 @@ type Choice = "host" | "cleaner" | "guest";
 const LAST_KEY = "movemate_last_role";
 
 const CARDS: { id: Choice; icon: typeof KeyRound; title: string; line: string; color: string }[] = [
-  { id: "host", icon: KeyRound, title: "Host", line: "Manage your property, review issues, and see if it's ready.", color: "bg-violet-100 text-violet-700" },
-  { id: "cleaner", icon: Brush, title: "Cleaner", line: "Open today's checklist and record rooms.", color: "bg-emerald-100 text-emerald-700" },
-  { id: "guest", icon: Users, title: "Guest", line: "Need help with an appliance or checking out? Use your stay link.", color: "bg-amber-100 text-amber-700" },
+  { id: "host", icon: KeyRound, title: "Host", line: "Manage your property, review issues, and see if it's ready.", color: "bg-accent text-primary" },
+  { id: "cleaner", icon: Brush, title: "Cleaner", line: "Open today's checklist and record rooms.", color: "bg-secondary text-secondary-foreground" },
+  { id: "guest", icon: Users, title: "Guest", line: "Need help with an appliance or checking out? Use your stay link.", color: "bg-accent text-primary" },
 ];
 
 function readLast(): Choice | null {
@@ -88,7 +88,7 @@ export default function Start() {
           <button
             type="button"
             onClick={() => choose(last)}
-            className="mb-4 flex w-full items-center justify-between rounded-xl border bg-card px-4 py-3 text-left shadow-sm transition hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="mb-4 flex min-h-12 w-full items-center justify-between rounded-xl border bg-card px-4 py-3 text-left shadow-sm transition hover:shadow-md active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span className="font-medium">{continueLabel}</span>
             <ArrowRight className="size-4 text-muted-foreground" aria-hidden />
@@ -105,7 +105,7 @@ export default function Start() {
                 type="button"
                 onClick={() => choose(id)}
                 aria-expanded={id === "guest" ? expanded === "guest" : undefined}
-                className="flex min-h-[88px] w-full items-center gap-4 rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="flex min-h-[88px] w-full items-center gap-4 rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className={`grid size-12 shrink-0 place-items-center rounded-xl ${color}`}>
                   <Icon className="size-6" aria-hidden />

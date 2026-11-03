@@ -3,28 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0d9488" />
+    <meta name="theme-color" content="#0f766e" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="MoveMate" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <title>MoveMate Host Edition</title>
     <script>
       // Apply saved theme before first paint (no flash).
       (function () {
         try {
           var m = localStorage.getItem("movemate_theme") || "system";
-          var a = localStorage.getItem("movemate_accent") || "teal";
           var d = m === "dark" || (m === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
           var r = document.documentElement;
           if (d) r.classList.add("dark");
           r.style.colorScheme = d ? "dark" : "light";
-          if (a !== "teal") r.setAttribute("data-accent", a);
+          r.removeAttribute("data-accent");
         } catch (e) {}
       })();
     </script>

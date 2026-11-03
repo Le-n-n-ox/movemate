@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 
 const MAP = {
   ready: { label: "Ready", Icon: CheckCircle2, cls: "bg-ok/15 text-ok border-ok/30" },
-  ready_with_exceptions: { label: "Ready with exceptions", Icon: AlertTriangle, cls: "bg-warn/20 text-amber-800 dark:text-amber-300 border-warn/40" },
-  not_ready: { label: "Not ready", Icon: XCircle, cls: "bg-danger/15 text-danger border-danger/30" },
+  ready_with_exceptions: { label: "Ready with exceptions", Icon: AlertTriangle, cls: "bg-accent text-accent-foreground border-primary/25" },
+  not_ready: { label: "Not ready", Icon: XCircle, cls: "bg-muted text-foreground border-border" },
 } as const;
 
 /** Only `ready` gets a tick. A completed inspection alone never does. */

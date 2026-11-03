@@ -8,7 +8,7 @@ export const typeLabel: Record<FindingType, string> = {
   misplaced: "In a different place", unverified: "Could not check", extra: "Extra item",
 };
 export const typeTone: Record<FindingType, "danger" | "warn" | "info"> = {
-  missing: "danger", count_mismatch: "warn", misplaced: "warn", unverified: "warn", extra: "info",
+  missing: "danger", count_mismatch: "warn", misplaced: "info", unverified: "warn", extra: "info",
 };
 
 export const isClosed = (f: FindingOut) => f.resolution === "confirmed" || f.resolution === "dismissed";

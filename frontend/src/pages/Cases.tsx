@@ -51,7 +51,7 @@ export default function Cases() {
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   <Pill tone={caseStatusTone[c.status]}>{caseStatusLabel[c.status]}</Pill>
-                  {c.blocks_readiness && <Pill tone="danger">Blocks readiness</Pill>}
+                  {c.blocks_readiness && <Pill>Blocks readiness</Pill>}
                   {c.assigned_to && <Pill>Assigned to {c.assigned_to}</Pill>}
                   {c.outcome && <Pill tone="ok">{outcomeLabel(c.outcome)}</Pill>}
                 </div>

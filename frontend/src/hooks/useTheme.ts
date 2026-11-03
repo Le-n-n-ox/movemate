@@ -1,14 +1,11 @@
 import { createContext, useContext } from "react";
 
 export type Mode = "light" | "dark" | "system";
-export type Accent = "teal" | "indigo" | "violet" | "slate";
 
 export interface ThemeState {
   mode: Mode;
   resolved: "light" | "dark";
-  accent: Accent;
   setMode: (m: Mode) => void;
-  setAccent: (a: Accent) => void;
 }
 
 export const ThemeCtx = createContext<ThemeState | null>(null);

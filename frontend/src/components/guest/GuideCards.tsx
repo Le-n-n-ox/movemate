@@ -8,7 +8,7 @@ export function GuideCards({ guide }: { guide: GuestGuide }) {
       <h2 className="text-2xl font-bold">{guide.title}</h2>
 
       {guide.warnings.length > 0 && (
-        <div role="note" className="warn-box space-y-2 !p-4 text-base">
+        <div role="note" className="hint-box space-y-2 !p-4 text-base">
           <p className="flex items-center gap-2 font-semibold"><AlertTriangle className="size-5" aria-hidden /> Be careful</p>
           <ul className="list-disc space-y-1 pl-5">
             {guide.warnings.map((w, i) => <li key={i}>{w}</li>)}

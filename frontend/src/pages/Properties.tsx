@@ -57,7 +57,7 @@ export default function Properties() {
           <h1 className="font-display text-4xl font-bold tracking-tight">Properties</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {total} {total === 1 ? "property" : "properties"}
-            {needsAttention > 0 && <>, <span className="text-danger">{needsAttention} need{needsAttention === 1 ? "s" : ""} attention</span></>}
+            {needsAttention > 0 && <>, <span className="font-medium text-info">{needsAttention} need{needsAttention === 1 ? "s" : ""} attention</span></>}
           </p>
         </div>
         {role === "host" && (
@@ -102,7 +102,7 @@ export default function Properties() {
                       <div className="flex h-full items-center justify-center text-muted-foreground"><Building2 className="size-8" /></div>
                     )}
                     {p.open_discrepancies > 0 && (
-                      <span className="absolute left-3 top-3 rounded-full bg-danger px-2 py-0.5 text-xs font-semibold text-white">
+                      <span className="absolute left-3 top-3 rounded-full bg-card/95 px-3 py-1 text-xs font-semibold text-foreground shadow-sm">
                         {p.open_discrepancies} open cases
                       </span>
                     )}
