@@ -37,7 +37,7 @@ export default function Readiness() {
 
   return (
     <Shell title="Readiness report" back={`/inspection/${id}?role=${role}`} backLabel="Inspection">
-      {q.loading && [0, 1, 2].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
+      {q.loading && <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}</div>}
       {q.error && <ErrorNote message={q.error} onRetry={() => q.refresh()} />}
       {r && (
         <>
@@ -55,8 +55,10 @@ export default function Readiness() {
           </Card>
 
           {r.exception_note && (
-            <div className="warn-box space-y-1 !p-4">
-              <p className="font-semibold">Completed with an exception</p>
+            <div className="rounded-lg border border-warn/40 bg-warn/15 p-4">
+              <p className="mb-1 flex items-center gap-2 font-semibold text-warn">
+                <span className="size-5" aria-hidden>⚠</span> Completed with an exception
+              </p>
               <p>{r.exception_note}</p>
               {r.exception_by && <p className="text-xs">Approved by {r.exception_by}</p>}
             </div>
@@ -69,7 +71,7 @@ export default function Readiness() {
 
           <IssuesChart rooms={r.rooms} />
 
-          <section className="space-y-3" aria-label="Rooms">
+          <section className="space-y-4" aria-label="Rooms">
             <h2 className="text-lg font-semibold">Rooms</h2>
             {r.rooms.map((room) => (
               <Card key={room.room_name} className="gap-2 p-4">
@@ -89,7 +91,9 @@ export default function Readiness() {
             <Button variant="outline" className="btn-tap" onClick={() => copyText(plainText(r), "Summary copied")}>
               <Copy className="size-5" /> Copy summary
             </Button>
-            <Button className="btn-tap" onClick={() => window.print()}><Printer className="size-5" /> Print</Button>
+            <Button className="btn-tap" onClick={() => window.print()}>
+              <Printer className="size-5" /> Print
+            </Button>
           </div>
         </>
       )}

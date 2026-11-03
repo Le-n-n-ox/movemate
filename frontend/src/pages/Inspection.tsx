@@ -40,7 +40,7 @@ export default function Inspection() {
   return (
     <Shell title={d ? kindLabel(d.kind) : "Inspection"} back={withRole(pid ? `/properties/${pid}` : "/properties")} backLabel="Property">
       <RoleBar role={role} actor={actor} onActor={setActor} />
-      {insp.loading && [0, 1].map((i) => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
+      {insp.loading && <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}</div>}
       {insp.error && <ErrorNote message={insp.error} onRetry={() => insp.refresh()} />}
       {d && (
         <>
@@ -51,8 +51,7 @@ export default function Inspection() {
           </div>
 
           {isHost && (
-            <Button variant="outline" className="no-print btn-tap w-full"
-              onClick={() => copyText(linkFor("cleaner"), "Cleaner link copied")}>
+            <Button variant="outline" className="no-print btn-tap w-full" onClick={() => copyText(linkFor("cleaner"), "Cleaner link copied")}>
               <Copy className="size-5" /> Copy link for the cleaner
             </Button>
           )}
@@ -60,8 +59,8 @@ export default function Inspection() {
           {open && auditId && (
             <Card className="gap-2 p-4">
               <p className="text-sm text-muted-foreground">Add hints from the latest AI video check. They never change a result.</p>
-              <Button variant="outline" className="btn-tap" disabled={hintBusy} onClick={useHints}>
-                <Sparkles className="size-5" /> {hintBusy ? "Adding..." : "Use hints from the latest AI video check"}
+              <Button variant="outline" className="btn-tap w-full" disabled={hintBusy} onClick={useHints}>
+                <Sparkles className="size-5" /> {hintBusy ? "Adding…" : "Use hints from the latest AI video check"}
               </Button>
             </Card>
           )}
