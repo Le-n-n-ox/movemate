@@ -32,7 +32,7 @@ export const resultLabel: Record<ItemResult, string> = {
 
 export const resultTone: Record<ItemResult, "neutral" | "ok" | "warn" | "danger" | "info"> = {
   pending: "neutral", ok: "ok", not_seen: "warn", misplaced: "info",
-  missing: "danger", damaged: "info", low_stock: "warn",
+  missing: "danger", damaged: "warn", low_stock: "warn",
 };
 
 export const partLabel: Record<PartStatus, string> = {

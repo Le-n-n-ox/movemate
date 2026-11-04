@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ShieldAlert, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { DiscrepancyDetail } from "@/lib/types";
@@ -20,15 +21,22 @@ export function HostControls({ c, actor, onChanged }: { c: DiscrepancyDetail; ac
 
   return (
     <Card className="gap-3 p-4">
-      <h2 className="text-lg font-semibold">Host controls</h2>
+      <h2 className="card-title">
+        <span className="icon-badge"><UserCheck className="size-5" aria-hidden /></span> Host controls
+      </h2>
       <div className="grid grid-cols-[1fr_auto] gap-2">
         <Input aria-label="Assign to" placeholder="Assign to (name)" className="h-12" value={name} onChange={(e) => setName(e.target.value)} />
         <Button className="btn-tap" disabled={busy || !name.trim()} onClick={() => patch({ assigned_to: name.trim() })}>Assign</Button>
       </div>
-      <label className="flex min-h-12 items-start gap-3 text-sm">
+      <label className="flex min-h-14 cursor-pointer items-start gap-3 rounded-xl border bg-card p-3 text-sm transition-colors has-[:checked]:border-warn has-[:checked]:bg-warn/10">
         <input type="checkbox" className="mt-0.5 size-5 accent-primary" checked={c.blocks_readiness} disabled={busy}
           onChange={(e) => patch({ blocks_readiness: e.target.checked })} />
-        <span>Blocks readiness<span className="block text-xs text-muted-foreground">The property cannot be ready while this is open.</span></span>
+        <span className="flex-1">
+          <span className="flex items-center gap-1.5 font-semibold">
+            <ShieldAlert className={`size-4 ${c.blocks_readiness ? "text-warn" : "text-muted-foreground"}`} aria-hidden /> Blocks readiness
+          </span>
+          <span className="block text-xs text-muted-foreground">The property cannot be ready while this is open.</span>
+        </span>
       </label>
     </Card>
   );
