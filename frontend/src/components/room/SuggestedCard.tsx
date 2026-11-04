@@ -5,7 +5,6 @@ import { api } from "@/lib/api";
 import type { ItemOut } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -24,8 +23,9 @@ export function SuggestedCard({ item, onChanged, index, highlighted, onSelect }:
   return (
     <Card id={`card-${item.id}`} className={`gap-3 p-4 ${highlighted ? "ring-4 ring-amber-300/70" : ""}`} onClick={() => onSelect?.(item.id)}>
       {typeof index === "number" && (
-        <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground" aria-label={`Item ${index + 1}`}>{index + 1}</span>
+        <span className="flex size-6 items-center justify-center rounded-full text-[12px] font-bold text-white" style={{ backgroundColor: ["#e11d48","#2563eb","#059669","#d97706","#7c3aed","#0891b2","#db2777","#65a30d"][index % 8] }} aria-label={`Item ${index + 1}`}>{index + 1}</span>
       )}
+      {item.needs_check && <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Check this one</span>}
       {!item.bbox && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">No box yet</span>
@@ -33,10 +33,10 @@ export function SuggestedCard({ item, onChanged, index, highlighted, onSelect }:
         </div>
       )}
       <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)]">
-        {item.crop_url && <img src={item.crop_url} alt={item.label} className="size-20 shrink-0 rounded-lg object-cover" />}
+        {item.crop_url && <a href={item.crop_url} target="_blank" rel="noreferrer"><img src={item.crop_url} alt={item.label} className="h-40 w-full shrink-0 rounded-lg object-cover" /></a>}
         <div className="min-w-0 space-y-1.5">
           <Label htmlFor={`l-${item.id}`}>Name</Label>
-          <Input id={`l-${item.id}`} className="h-12" value={label} onChange={(e) => setLabel(e.target.value)} />
+          <textarea id={`l-${item.id}`} className="min-h-12 w-full rounded-xl border bg-card px-3 py-3 text-base" value={label} onChange={(e) => setLabel(e.target.value)} />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">

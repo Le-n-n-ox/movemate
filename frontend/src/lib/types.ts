@@ -27,14 +27,15 @@ export interface ItemOut {
   location_hint: string | null; notes: string | null; status: "suggested" | "confirmed" | "retired";
   location_id: string | null; location_path: string | null; kind: ItemKind; condition: ItemCondition;
   availability: Availability; high_value: boolean; min_quantity: number | null; alternate_locations: string[];
+  needs_check: boolean; detection_confidence: number | null;
 }
 export interface ItemCreate {
-  label: string; quantity?: number; kind?: ItemKind; category?: string; location_id?: string;
+  label: string; quantity?: number; bbox?: BBox | null; kind?: ItemKind; category?: string; location_id?: string;
   location_hint?: string; notes?: string; availability?: Availability; high_value?: boolean;
   min_quantity?: number; alternate_locations?: string[];
 }
 export interface ItemPatch {
-  label?: string; quantity?: number; notes?: string; location_hint?: string; status?: ItemOut["status"];
+  label?: string; quantity?: number; bbox?: BBox | null; notes?: string; location_hint?: string; status?: ItemOut["status"];
   kind?: ItemKind; availability?: Availability; high_value?: boolean; min_quantity?: number | null;
   alternate_locations?: string[]; location_id?: string | null;
 }

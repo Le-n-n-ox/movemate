@@ -53,6 +53,33 @@ def _is_long_object(label: str) -> bool:
     return any(h in low for h in _LONG_OBJECT_HINTS)
 
 
+
+_COLOUR_PATTERN = {"geometric","patterned","damask","decorative","dark","light","small","large","wooden","fabric","loveseat","throw","and","the","with","on","of"}
+
+def short_name(name: str) -> str:
+    words = [w for w in str(name).replace("-", " ").split() if w]
+    return " ".join(words[:4]) if words else "Item"
+
+def normalize_name(name: str) -> str:
+    words = []
+    for w in str(name).lower().replace("-", " ").replace("'", "").split():
+        if w in {"cushion", "cushions", "pillow", "pillows"}:
+            words.append("cushion")
+            continue
+        if w in _COLOUR_PATTERN:
+            continue
+        if len(w) > 3 and w.endswith("s") and not w.endswith("ss"):
+            w = w[:-1]
+        words.append(w)
+    return " ".join(words).strip() or str(name).casefold()
+
+def _verify_result(client, crop, name):
+    """Return (matches, better_name, confidence) supporting Verification dataclass or legacy tuple."""
+    r = client.verify_crop(crop, name)
+    if isinstance(r, (list, tuple)):
+        return bool(r[0]), None, float(r[1]) if len(r) > 1 else 0.9
+    return bool(getattr(r, "matches", True)), getattr(r, "better_name", None), float(getattr(r, "confidence", 0.9))
+
 def _aspect(bbox) -> float:
     if not bbox or bbox["w"] <= 0 or bbox["h"] <= 0:
         return 999.0
@@ -198,8 +225,8 @@ def _objects_in_image(client, img: bytes, frame_no: int, close_up: bool = False)
     raw_objs: list[dict] = []
     sam_calls = 0
     for item in listed:
-        name = getattr(item, "name", str(item))
-        size = getattr(item, "size", "medium")
+        # Pairing rule: every box returned for THIS prompt inherits THIS name.
+        name = short_name(getattr(item, "name", str(item)))
         cat = getattr(item, "category", None)
         segs = []
         try:
@@ -207,64 +234,111 @@ def _objects_in_image(client, img: bytes, frame_no: int, close_up: bool = False)
             sam_calls += 1
         except Exception:
             segs = []
-        if not segs and str(size).lower() == "small":
-            segs = _tiled_segment(client, img, name)
-            sam_calls += 1
-        # Gateway often returns ALL objects regardless of prompt; only keep boxes
-        # whose returned label matches the requested name. Keep only near-best matches
-        # per prompt so a left-pillow query cannot also claim the orange pillow.
-        scored = []
         for s in segs:
-            seg_label = getattr(s, "label", None)
-            sim = label_sim(seg_label, name) if seg_label else 1.0
-            scored.append((sim, s))
-        if scored:
-            top = max(sim for sim, _ in scored)
-            scored = [(sim, s) for sim, s in scored if sim >= 0.35 and sim >= top - 0.25]
-        for sim, s in scored:
             raw_objs.append({"label": name, "category": cat, "conf": float(s.score),
-                             "bbox": s.bbox, "frame": frame_no, "crop": None, "image": img, "score": float(s.score)})
+                             "bbox": s.bbox, "frame": frame_no, "crop": None, "image": img, "score": float(s.score),
+                             "quantity": 1, "needs_check": False, "detection_confidence": float(s.score)})
     filtered = filter_segments(raw_objs)
     kept = nms(filtered, iou_same=settings.segment_nms_iou_same, iou_cross=settings.segment_nms_iou_cross)
     kept = sorted(kept, key=lambda x: x.get("conf", 0), reverse=True)[: settings.max_segments_per_image]
     objs: list[dict] = []
     verify_calls = 0
-    kept_names = {o["label"].strip().casefold() for o in kept}
+    dropped_verify = 0
     for o in kept:
         try:
             crop = imaging.crop_bbox(img, o["bbox"])
         except Exception:
             crop = img
-        notes = None
+        label = o["label"]
+        needs_check = False
+        vconf = o["conf"]
         if hasattr(client, "verify_crop") and verify_calls < settings.baseline_max_verify:
             try:
-                matches, conf = client.verify_crop(crop, o["label"])
+                matches, better, vconf = _verify_result(client, crop, label)
                 verify_calls += 1
-                if not matches or conf < 0.5:
-                    notes = "check this one"
+                if not matches:
+                    if better:
+                        label = short_name(better)
+                        needs_check = True
+                    else:
+                        dropped_verify += 1
+                        continue
+                elif vconf < 0.5:
+                    needs_check = True
             except Exception:
                 pass
-        objs.append({"label": o["label"], "category": o.get("category"), "conf": o["conf"],
-                     "bbox": o["bbox"], "frame": frame_no, "crop": crop, "image": img, "notes": notes})
+        o2 = dict(o); o2["label"] = label; o2["crop"] = crop; o2["needs_check"] = needs_check
+        o2["detection_confidence"] = vconf; o2["notes"] = None
+        objs.append(o2)
+    grouped: dict[str, dict] = {}
+    order: list[str] = []
+    for o in sorted(objs, key=lambda x: x.get("conf", 0), reverse=True):
+        if not o.get("bbox"):
+            continue
+        key = normalize_name(o["label"])
+        if key not in grouped:
+            grouped[key] = o; order.append(key)
+        else:
+            g = grouped[key]
+            g["quantity"] = int(g.get("quantity", 1)) + int(o.get("quantity", 1))
+    grouped_objs = [grouped[k] for k in order]
+    kept_norm = {normalize_name(o["label"]) for o in grouped_objs}
+    null_objs: list[dict] = []
     for item in listed:
-        name = getattr(item, "name", str(item))
-        if name.strip().casefold() not in kept_names:
-            objs.append({"label": name, "category": getattr(item, "category", None), "conf": 0.5,
-                         "bbox": None, "frame": frame_no, "crop": img, "image": img, "notes": "No box yet"})
+        name = short_name(getattr(item, "name", str(item)))
+        if normalize_name(name) in kept_norm:
+            continue
+        segs = []
+        try:
+            # Cost bound: total SAM calls per photo capped at baseline_max_names (12).
+            # Tiled retry is 4 calls, so only do it while budget remains.
+            if sam_calls < settings.baseline_max_names:
+                segs = _tiled_segment(client, img, name)
+                sam_calls += 1
+        except Exception:
+            segs = []
+        tiled_objs = []
+        for s in segs:
+            tiled_objs.append({"label": name, "category": getattr(item, "category", None), "conf": float(s.score),
+                               "bbox": s.bbox, "frame": frame_no, "crop": None, "image": img, "score": float(s.score),
+                               "quantity": 1, "needs_check": False, "detection_confidence": float(s.score)})
+        tiled_kept = nms(filter_segments(tiled_objs), iou_same=settings.segment_nms_iou_same, iou_cross=settings.segment_nms_iou_cross)
+        # Tiled returns are noisy (gateway returns all objects); only keep plausible small boxes
+        tiled_kept = [o for o in tiled_kept if o["bbox"]["w"] * o["bbox"]["h"] < 0.2]
+        if tiled_kept:
+            for o in tiled_kept[:2]:
+                try:
+                    crop = imaging.crop_bbox(img, o["bbox"])
+                except Exception:
+                    crop = img
+                o2 = dict(o); o2["crop"] = crop; o2["notes"] = None
+                grouped_objs.append(o2)
+            kept_norm.add(normalize_name(name))
+        else:
+            null_objs.append({"label": name, "category": getattr(item, "category", None), "conf": 0.5,
+                         "bbox": None, "frame": frame_no, "crop": img, "image": img, "notes": None,
+                         "quantity": 1, "needs_check": True, "detection_confidence": 0.5})
+    objs = grouped_objs + null_objs
     est_cost = 0.001 + sam_calls * 0.001 + verify_calls * 0.0005
-    log.info("baseline photo: stageA=%d sam_calls=%d verify_calls=%d kept=%d est_cost=%.4f",
-             len(listed), sam_calls, verify_calls, len(objs), est_cost)
-    print(f"baseline photo: stageA={len(listed)} sam_calls={sam_calls} verify_calls={verify_calls} kept={len(objs)} est_cost={est_cost:.4f}")
+    log.info("baseline photo: stageA=%d sam_calls=%d verify_calls=%d dropped_verify=%d kept=%d est_cost=%.4f",
+             len(listed), sam_calls, verify_calls, dropped_verify, len(objs), est_cost)
+    print(f"baseline photo: stageA={len(listed)} sam_calls={sam_calls} verify_calls={verify_calls} dropped_verify={dropped_verify} kept={len(objs)} est_cost={est_cost:.4f}")
     return objs
 
 
 def _to_items(db: Session, room: Room, capture: Capture, objs: list[dict], source_rel_for, priority: str) -> list[Item]:
+    # (d) do not create suggested duplicate if same normalized name already confirmed in room
+    confirmed_norm = {normalize_name(i.label) for i in db.query(Item).filter(Item.room_id == room.id, Item.status == "confirmed").all()}
     items = []
     for o in objs:
+        if normalize_name(o["label"]) in confirmed_norm:
+            log.info("baseline skip already confirmed: %s", o["label"])
+            continue
         crop_rel = storage.save_bytes(f"crops/{room.id}", o["crop"])
         item = Item(room_id=room.id, capture_id=capture.id, label=o["label"], category=o.get("category"),
-                    quantity=1, priority=priority, bbox=o.get("bbox"), crop_path=crop_rel,
-                    source_image_path=source_rel_for(o), status="suggested", notes=o.get("notes"))
+                    quantity=int(o.get("quantity", 1)), priority=priority, bbox=o.get("bbox"), crop_path=crop_rel,
+                    source_image_path=source_rel_for(o), status="suggested", notes=None,
+                    needs_check=bool(o.get("needs_check", False)), detection_confidence=o.get("detection_confidence"))
         db.add(item)
         items.append(item)
     db.commit()

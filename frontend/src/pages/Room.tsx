@@ -13,6 +13,7 @@ import { RoomHeader } from "@/components/room/RoomHeader";
 import { ScanCard } from "@/components/room/ScanCard";
 import { PlacesCard } from "@/components/room/PlacesCard";
 import { SuggestedCard } from "@/components/room/SuggestedCard";
+import { ReviewQueue } from "@/components/room/ReviewQueue";
 import { ConfirmedItem } from "@/components/room/ConfirmedItem";
 
 const jump = (id: string) =>
@@ -86,7 +87,13 @@ export default function Room() {
                 <Button variant="outline" className="btn-tap" onClick={confirmAll}><CheckCheck className="size-5" /> Confirm all</Button>
               </div>
               <div className="stagger space-y-4">
-                {suggested.map((i, idx) => <SuggestedCard key={i.id} item={i} index={idx} highlighted={selectedId === i.id} onSelect={setSelectedId} onChanged={refresh} />)}
+                <ReviewQueue items={suggested} onChanged={refresh} onConfirmAll={confirmAll} onSelect={setSelectedId} />
+                <details className="rounded-xl border p-3">
+                  <summary className="cursor-pointer font-medium">Compact list (old cards)</summary>
+                  <div className="mt-3 space-y-4">
+                    {suggested.map((i, idx) => <SuggestedCard key={i.id} item={i} index={idx} highlighted={selectedId === i.id} onSelect={setSelectedId} onChanged={refresh} />)}
+                  </div>
+                </details>
               </div>
             </section>
           )}

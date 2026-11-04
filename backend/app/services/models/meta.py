@@ -13,7 +13,7 @@ import re
 import httpx
 
 from ...config import settings
-from .base import Guide, Judgement, Label, ListedObject, Segment
+from .base import Guide, Judgement, Label, ListedObject, Segment, Verification
 
 LABEL_PROMPT = (
     "Identify the single main object in this image. If visible, extract the brand and model name. "
@@ -85,13 +85,13 @@ def _extract_text(raw: dict) -> str:
 LIST_OBJECTS_PROMPT = (
     "List every distinct, guest-relevant or host-relevant object in this photo. "
     "Ignore walls, floors, fabric patterns, shadows and generic textures. "
-    "Name items specifically, for example \"black TV remote\", \"orange decorative cushion\", \"Bible\". "
+    "Name items specifically with at most 4 words, colour first only when it distinguishes items, for example \"black TV remote\", \"orange cushion\", \"Bible\". "
     'Return JSON only: an array of {"name": "...", "description": "...", "count": 1, "size": "small|medium|large"}. '
     "If none, return []."
 )
 
 VERIFY_PROMPT = (
-    "Does the crop show the named object? Return JSON only: {\"matches\": true|false, \"confidence\": <0 to 1>}"
+    "Does the crop show the named object? If not, suggest a better name. Return JSON only: {\"matches\": true|false, \"better_name\": \"short name or null\", \"confidence\": <0 to 1>}"
 )
 
 
@@ -431,11 +431,12 @@ class MetaClient:
             return out
         return self._with_retry(_do)
 
-    def verify_crop(self, crop: bytes, name: str) -> tuple[bool, float]:
+    def verify_crop(self, crop: bytes, name: str) -> Verification:
         def _do():
             prompt = "Named object: " + name + ". " + VERIFY_PROMPT
             d = _parse_json(self._chat(settings.meta_reason_model, [crop], prompt))
-            return bool(d.get("matches", False)), float(d.get("confidence", 0.5))
+            bn = d.get("better_name")
+            return Verification(matches=bool(d.get("matches", False)), better_name=str(bn) if bn else None, confidence=float(d.get("confidence", 0.5)))
         return self._with_retry(_do)
 
     def name_main_object(self, image: bytes) -> str:

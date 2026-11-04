@@ -9,10 +9,10 @@ from pydantic import BaseModel, Field
 
 class BBox(BaseModel):
     """Normalized 0..1 relative to image width/height."""
-    x: float
-    y: float
-    w: float
-    h: float
+    x: float = Field(ge=0, le=1)
+    y: float = Field(ge=0, le=1)
+    w: float = Field(gt=0.01, le=1)
+    h: float = Field(gt=0.01, le=1)
 
 
 RoomType = Literal["bedroom", "bathroom", "kitchen", "living", "balcony", "garage", "laundry", "storage", "other"]
@@ -124,11 +124,14 @@ class ItemOut(BaseModel):
     high_value: bool = False
     min_quantity: int | None = None
     alternate_locations: list[str] = []
+    needs_check: bool = False
+    detection_confidence: float | None = None
 
 
 class ItemCreate(BaseModel):
     label: str = Field(min_length=1, max_length=300)
     quantity: int = Field(default=1, ge=1, le=999)
+    bbox: BBox | None = None
     kind: ItemKind = "movable"
     category: str | None = None
     location_id: str | None = None
@@ -143,6 +146,7 @@ class ItemCreate(BaseModel):
 class ItemPatch(BaseModel):
     label: str | None = None
     quantity: int | None = Field(default=None, ge=1, le=999)
+    bbox: BBox | None = None
     notes: str | None = None
     location_hint: str | None = None
     status: ItemStatus | None = None

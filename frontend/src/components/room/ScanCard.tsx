@@ -54,6 +54,8 @@ export function ScanCard({ roomId, suggested, onDone, selectedId, onSelect }: {
   }
 
   const boxes = capture ? suggested.filter((i) => capture.ids.includes(i.id)) : [];
+  const sourceSrc = boxes.find((b) => b.source_image_url)?.source_image_url ?? capture?.preview ?? null;
+  const [hideBoxes, setHideBoxes] = useState(false);
 
   return (
     <Card className={`gap-3 p-4 ${busy ? "card-info" : ""}`}>
@@ -82,7 +84,7 @@ export function ScanCard({ roomId, suggested, onDone, selectedId, onSelect }: {
       {error && <ErrorNote message={error} onRetry={() => retry.current?.()} />}
       {capture && !busy && (
         <div className="pop space-y-2">
-          {capture.preview && (
+          {sourceSrc && (
             <div
               ref={editorRef}
               className="relative"
@@ -100,30 +102,38 @@ export function ScanCard({ roomId, suggested, onDone, selectedId, onSelect }: {
                 window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
               }}
             >
-              <BBoxOverlay src={capture.preview} alt="Your photo with items marked"
+              <BBoxOverlay src={sourceSrc} alt="Your photo with items marked" hidden={hideBoxes}
                 boxes={[...boxes.map((i) => ({ id: i.id, label: i.label, bbox: i.bbox })), ...(drawBox ? [{ id: "draft", label: "drawn box", bbox: drawBox }] : [])]}
                 selectedId={selectedId} onSelect={(id) => { onSelect?.(id); document.getElementById("card-" + id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
             </div>
           )}
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={() => setHideBoxes(!hideBoxes)}>{hideBoxes ? "Show boxes" : "Hide boxes"}</Button>
+          </div>
           {!capture.preview && <p className="text-sm text-muted-foreground">Uploaded: {capture.name}</p>}
           {capture.ids.length < 3 && (
             <p className="warn-box">We found few items. Try a closer, brighter photo, or add items by drawing boxes.</p>
           )}
           <div className="space-y-2 rounded-xl border p-3">
             <p className="text-sm font-semibold">Box editor</p>
-            <p className="text-sm text-muted-foreground">Drag on the photo to draw a box. Saving a box needs a backend PATCH bbox field (see note below).</p>
+            <p className="text-sm text-muted-foreground">Drag on the photo to draw a box. Save calls PATCH with bbox.</p>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={() => { setDrawTarget("new"); setDrawBox(null); }}>Draw box</Button>
               <Button type="button" variant="outline" disabled={!drawBox} onClick={() => setDrawBox(null)}>Remove</Button>
+              <Button type="button" disabled={!drawBox || !selectedId} onClick={async () => {
+                if (!drawBox || !selectedId) return;
+                try { await api.patchItem(selectedId, { bbox: drawBox }); toast.success("Box saved"); setDrawBox(null); onDone(); }
+                catch (e) { toast.error((e as Error).message); }
+              }}>Save box</Button>
             </div>
             <div className="flex flex-wrap gap-2">
               <Input aria-label="New item name" placeholder="Name for drawn box" value={newName} onChange={(e) => setNewName(e.target.value)} className="min-w-40 flex-1" />
               <Button type="button" variant="outline" disabled={!newName.trim() || !drawBox} onClick={async () => {
-                try { await api.createItem(roomId, { label: newName.trim() }); toast.success("Item added. Box save needs PATCH bbox (not in contract)."); setDrawBox(null); setNewName(""); onDone(); }
+                try { const it = await api.createItem(roomId, { label: newName.trim() }); if (drawBox && it.source_image_url) { try { await api.patchItem(it.id, { bbox: drawBox }); } catch {} } toast.success("Item added"); setDrawBox(null); setNewName(""); onDone(); }
                 catch (e) { toast.error((e as Error).message); }
               }}>Add item</Button>
             </div>
-            <p className="text-xs text-muted-foreground">PATCH /items/{`{id}`} and POST /rooms/{`{id}`}/items have no bbox field in ItemPatch/ItemCreate, so a drawn box cannot be saved without a contract change. Proposed: add bbox: BBox | null to ItemPatch and ItemCreate.</p>
+            <p className="text-xs text-muted-foreground">Suggest a name: type a name, or use the label call on the crop after saving the box.</p>
           </div>
         </div>
       )}

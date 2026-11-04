@@ -95,6 +95,8 @@ class Item(Base):
     high_value: Mapped[bool] = mapped_column(Boolean, default=False)  # needs extra verification
     min_quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)  # consumables: restock below this
     alternate_locations: Mapped[list] = mapped_column(JSON, default=list)  # acceptable other places
+    needs_check: Mapped[bool] = mapped_column(Boolean, default=False)
+    detection_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     room: Mapped[Room] = relationship(back_populates="items")
 

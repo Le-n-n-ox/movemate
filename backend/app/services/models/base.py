@@ -42,6 +42,13 @@ class Judgement:
 
 
 @dataclass
+class Verification:
+    matches: bool = True
+    better_name: str | None = None
+    confidence: float = 0.9
+
+
+@dataclass
 class ListedObject:
     name: str
     description: str = ""
@@ -55,7 +62,7 @@ class VisionClient(Protocol):
 
     def list_objects(self, image: bytes) -> list[ListedObject]: ...
 
-    def verify_crop(self, crop: bytes, name: str) -> tuple[bool, float]: ...
+    def verify_crop(self, crop: bytes, name: str) -> Verification: ...
 
     def label(self, crop: bytes) -> Label: ...
 

@@ -10,7 +10,7 @@ POST /api/dev/seed creates a demo property that exercises all of these.
 """
 import hashlib
 
-from .base import Guide, Judgement, Label, Segment
+from .base import Guide, Judgement, Label, Segment, Verification
 
 NAMES = [
     ("Nespresso Vertuo Plus", "appliance", "Nespresso", "Vertuo Plus"),
@@ -39,7 +39,7 @@ class MockClient:
         return []
 
     def verify_crop(self, crop: bytes, name: str):
-        return (True, 0.9)
+        return Verification(matches=True, better_name=None, confidence=0.9)
 
     def label(self, crop: bytes) -> Label:
         name, cat, brand, model = NAMES[_h(crop) % len(NAMES)]

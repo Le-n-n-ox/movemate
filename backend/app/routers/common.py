@@ -41,7 +41,8 @@ def item_out(i: Item, db: Session | None = None) -> ItemOut:
                    location_path=locations.room_path(db, i.location_id) if (db is not None and i.location_id) else None,
                    kind=i.kind or "movable", condition=i.condition or "good", availability=i.availability or "guest",
                    high_value=bool(i.high_value), min_quantity=i.min_quantity,
-                   alternate_locations=list(i.alternate_locations or []))
+                   alternate_locations=list(i.alternate_locations or []),
+                   needs_check=bool(getattr(i, "needs_check", False)), detection_confidence=getattr(i, "detection_confidence", None))
 
 
 def save_condition(db: Session, item: Item, condition: str, note: str | None, actor: str, role: str | None,

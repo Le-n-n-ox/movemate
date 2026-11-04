@@ -13,6 +13,8 @@ import Readiness from "@/pages/Readiness";
 import Audit from "@/pages/Audit";
 import Guest from "@/pages/Guest";
 import Stay from "@/pages/Stay";
+import { BBoxOverlay } from "@/components/BBoxOverlay";
+const BBoxTest = () => (<div style={{padding:20}}><BBoxOverlay src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAwMCAO+ip1sAAAAASUVORK5CYII=" alt="test" boxes={[{id:"1",label:"test",bbox:{x:0.1,y:0.1,w:0.2,h:0.2}}]} /></div>);
 
 export default function App() {
   return (
@@ -30,6 +32,7 @@ export default function App() {
       <Route path="/audit/:auditId" element={<Audit />} />
       <Route path="/g/:token" element={<Guest />} />
       <Route path="/s/:stayToken" element={<Stay />} />
+      <Route path="/bbox-test" element={<BBoxTest />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
