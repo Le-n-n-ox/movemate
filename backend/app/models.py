@@ -6,6 +6,7 @@ from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, Stri
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
+from .services.usage import ModelUsage  # noqa: F401  ensure ModelUsage is in Base.metadata
 
 
 def new_id() -> str:
@@ -31,6 +32,20 @@ class Property(Base):
     audits: Mapped[list["Audit"]] = relationship(back_populates="property", cascade="all, delete-orphan")
 
 
+class Stay(Base):
+    """A guest stay: a per-stay guest link for checkout recording."""
+    __tablename__ = "stays"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    property_id: Mapped[str] = mapped_column(ForeignKey("properties.id", ondelete="CASCADE"))
+    stay_token: Mapped[str] = mapped_column(String(64), unique=True, default=lambda: uuid.uuid4().hex)
+    reservation_ref: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    guest_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="open")  # open | recorded | closed
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    property: Mapped["Property"] = relationship()
+
+
 class Room(Base):
     __tablename__ = "rooms"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
@@ -53,6 +68,13 @@ class Capture(Base):
     kind: Mapped[str] = mapped_column(String(32))  # baseline_photo | baseline_video | audit_video | audit_frames | guest_photo
     media_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     frame_paths: Mapped[list] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(32), default="queued")
+    progress: Mapped[float] = mapped_column(Float, default=0.0)
+    stage: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    item_count: Mapped[int] = mapped_column(Integer, default=0)
+    frames_seen: Mapped[int] = mapped_column(Integer, default=0)
+    frames_total: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
@@ -70,6 +92,7 @@ class Item(Base):
     source_image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     location_hint: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     instructions: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="suggested")  # suggested | confirmed | retired
     # inventory rules (v2)
@@ -80,6 +103,10 @@ class Item(Base):
     high_value: Mapped[bool] = mapped_column(Boolean, default=False)  # needs extra verification
     min_quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)  # consumables: restock below this
     alternate_locations: Mapped[list] = mapped_column(JSON, default=list)  # acceptable other places
+    needs_check: Mapped[bool] = mapped_column(Boolean, default=False)
+    frames_seen: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    frames_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    detection_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     room: Mapped[Room] = relationship(back_populates="items")
 
@@ -208,3 +235,24 @@ class DiscrepancyEvent(Base):
     actor: Mapped[str] = mapped_column(String(100), default="unknown")
     role: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class CheckoutRecording(Base):
+    __tablename__ = "checkout_recordings"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    stay_id: Mapped[str] = mapped_column(ForeignKey("stays.id", ondelete="CASCADE"))
+    room_id: Mapped[str] = mapped_column(ForeignKey("rooms.id", ondelete="CASCADE"))
+    media_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class CheckoutNote(Base):
+    __tablename__ = "checkout_notes"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    stay_id: Mapped[str] = mapped_column(ForeignKey("stays.id", ondelete="CASCADE"))
+    text: Mapped[str] = mapped_column(Text)
+    photo_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+

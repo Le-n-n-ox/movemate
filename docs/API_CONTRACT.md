@@ -45,8 +45,9 @@ Live docs: http://localhost:8000/docs
 | POST | `/api/rooms/{room_id}/photo` | multipart: file (image) | RoomOut | Room page |
 | GET | `/api/rooms/{room_id}/sheet` | - | HTML page | Room page (opens in new tab) |
 | GET | `/api/properties/{id}/rooms` | - | RoomOut[] | Property page |
-| POST | `/api/rooms/{room_id}/baseline/photo` | multipart: file (image), priority (high|normal) | BaselineResult | Room page |
-| POST | `/api/rooms/{room_id}/baseline/video` | multipart: file (video) | BaselineResult | Room page |
+| POST | `/api/rooms/{room_id}/baseline/photo` | multipart: file (image), priority (high|normal) | BaselineAck 202 | Room page |
+| POST | `/api/rooms/{room_id}/baseline/video` | multipart: file (video, max 30s) | BaselineAck 202 | Room page |
+| GET | `/api/captures/{id}` | - | CaptureStatus | Room page polling |
 | GET | `/api/rooms/{room_id}/items` | query: status (optional) | ItemOut[] | Room page |
 | PATCH | `/api/items/{id}` | JSON ItemPatch | ItemOut | Room page |
 | DELETE | `/api/items/{id}` | - | 204 no body | Room page |
@@ -84,11 +85,13 @@ Live docs: http://localhost:8000/docs
 - `RoomOut` = { id, property_id, parent_id|null, name, room_type, path ('Living room > Closet'), reference_photo_url|null, confirmed_items, suggested_items }. A place inside a room has parent_id set
 - `PropertyOut` = { id, name, guest_token, created_at, address|null, property_type|null, capacity|null, details|null, rules|null }
 - `PropertyDetail` = PropertyOut + { rooms: RoomOut[] (top-level only), latest_audit_id|null, latest_inspection_id|null, open_discrepancies }
-- `ItemOut` = { id, room_id, label, category|null, quantity, priority, bbox|null, crop_url|null, source_image_url|null, location_hint|null, notes|null, status 'suggested'|'confirmed'|'retired', location_id|null, location_path|null, kind 'fixed'|'movable'|'shared'|'consumable', condition 'new'|'good'|'worn'|'damaged'|'missing'|'under_repair', availability 'guest'|'staff_only', high_value, min_quantity|null, alternate_locations: string[] }
-- `ItemCreate` = { label, quantity? (1..999), kind?, category?, location_id?, location_hint?, notes?, availability?, high_value?, min_quantity?, alternate_locations? }
-- `ItemPatch` = any of { label, quantity (1..999), notes, location_hint, status, kind, availability, high_value, min_quantity, alternate_locations, location_id (null = anywhere in the room) }
+- `ItemOut` = { id, room_id, label, category|null, quantity, priority, bbox|null, crop_url|null, source_image_url|null, location_hint|null, notes|null, description|null, status 'suggested'|'confirmed'|'retired', location_id|null, location_path|null, kind 'fixed'|'movable'|'shared'|'consumable', condition 'new'|'good'|'worn'|'damaged'|'missing'|'under_repair', availability 'guest'|'staff_only', high_value, min_quantity|null, alternate_locations: string[], needs_check: bool, detection_confidence: float|null, frames_seen: int|null, frames_total: int|null }
+- `ItemCreate` = { label, quantity? (1..999), bbox? {x,y,w,h} normalized 0..1 w/h>0.01, kind?, category?, location_id?, location_hint?, notes?, availability?, high_value?, min_quantity?, alternate_locations? }
+- `ItemPatch` = any of { label, quantity (1..999), bbox {x,y,w,h} normalized 0..1 w/h>0.01 (regenerates crop from source image, clears cached guest guide; 409 if source image missing), notes, location_hint, status, kind, availability, high_value, min_quantity, alternate_locations, location_id (null = anywhere in the room) }
 - `ConditionEventOut` = { id, item_id, condition, previous|null, note|null, photo_url|null, actor, role|null, created_at }
-- `BaselineResult` = { capture_id, items: ItemOut[] }  (new items arrive with status 'suggested')
+- `BaselineAck` = { capture_id, status: 'processing' } 202
+- `CaptureStatus` = { capture_id, status queued/extracting_frames/detecting/naming/verifying/done/failed, progress 0..1, stage|null, error|null, item_count, frames_seen, frames_total, items: ItemOut[] }
+- `BaselineResult` kept for back-compat = { capture_id, items: ItemOut[] }
 - `GuestProperty` = { property_name, item_labels: string[], house_rules|null }  (staff_only items are never listed)
 - `GuestAnswer` = { matched, message, item_label|null, guide: GuestGuide|null }
 - `GuestGuide` = { title, steps: string[], warnings: string[], seen, unsure: string[] }

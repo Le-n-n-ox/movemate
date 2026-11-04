@@ -35,6 +35,8 @@ services:
       - ./data:/data
     ports:
       - "8000:8000"
+    mem_limit: 2g
+    # NOTE: code change restarts worker and interrupts running scans.
     depends_on:
       db:
         condition: service_healthy
@@ -42,7 +44,7 @@ services:
   frontend:
     build: ./frontend
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
       WATCHPACK_POLLING: "true"
     volumes:
       - ./frontend:/app

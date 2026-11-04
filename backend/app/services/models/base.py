@@ -9,6 +9,8 @@ class Segment:
     bbox: dict  # normalized {x,y,w,h}
     score: float = 1.0
     polygon: list | None = None
+    label: str | None = None
+    track_id: int | None = None
 
 
 @dataclass
@@ -16,6 +18,8 @@ class Label:
     label: str
     category: str | None = None
     confidence: float = 0.8
+    brand: str | None = None  # Extracted brand name if visible
+    model: str | None = None  # Extracted model name if visible
 
 
 @dataclass
@@ -38,8 +42,33 @@ class Judgement:
     at_usual_spot: bool | None = None  # False = seen, but not where it normally sits
 
 
+@dataclass
+class Verification:
+    matches: bool = True
+    better_name: str | None = None
+    confidence: float = 0.9
+
+
+@dataclass
+class ListedObject:
+    name: str
+    description: str = ""
+    count: int = 1
+    size: str = "medium"  # small|medium|large
+    category: str | None = None
+    frames: list[int] = field(default_factory=list)
+
+
 class VisionClient(Protocol):
-    def segment(self, image: bytes) -> list[Segment]: ...
+    def segment(self, image: bytes, height: int = None, width: int = None, prompts: list[str] | None = None) -> list[Segment]: ...
+
+    def list_objects(self, image: bytes) -> list[ListedObject]: ...
+
+    def list_objects_video(self, frames: list[bytes], context: str = "") -> list[ListedObject]: ...
+
+    def same_object(self, crop_a: bytes, crop_b: bytes) -> bool: ...
+
+    def verify_crop(self, crop: bytes, name: str) -> Verification: ...
 
     def label(self, crop: bytes) -> Label: ...
 

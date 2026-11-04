@@ -10,15 +10,15 @@ POST /api/dev/seed creates a demo property that exercises all of these.
 """
 import hashlib
 
-from .base import Guide, Judgement, Label, Segment
+from .base import Guide, Judgement, Label, Segment, Verification
 
 NAMES = [
-    ("Nespresso Vertuo Plus", "appliance"),
-    ("Samsung TV remote", "remote"),
-    ("Wine glass set", "glassware"),
-    ("Smart speaker", "electronics"),
-    ("Ceramic table lamp", "decor"),
-    ("Wi-Fi router", "electronics"),
+    ("Nespresso Vertuo Plus", "appliance", "Nespresso", "Vertuo Plus"),
+    ("Samsung TV remote", "remote", "Samsung", None),
+    ("Wine glass set", "glassware", None, None),
+    ("Smart speaker", "electronics", None, None),
+    ("Ceramic table lamp", "decor", None, None),
+    ("Wi-Fi router", "electronics", None, None),
 ]
 
 
@@ -27,16 +27,32 @@ def _h(data: bytes) -> int:
 
 
 class MockClient:
-    def segment(self, image: bytes) -> list[Segment]:
+    def segment(self, image: bytes, height: int = None, width: int = None, prompts: list[str] | None = None) -> list[Segment]:
         return [
             Segment(bbox={"x": 0.08, "y": 0.35, "w": 0.28, "h": 0.40}, score=0.95),
             Segment(bbox={"x": 0.42, "y": 0.50, "w": 0.18, "h": 0.22}, score=0.90),
             Segment(bbox={"x": 0.66, "y": 0.28, "w": 0.24, "h": 0.45}, score=0.88),
         ]
 
+    def list_objects(self, image: bytes):
+        # Mock returns no stage-A list so baseline keeps legacy mock behaviour.
+        return []
+
+    def list_objects_video(self, frames, context=""):
+        from .base import ListedObject
+        if not frames:
+            return []
+        return [ListedObject(name="Sofa", description="grey fabric sofa", count=1, frames=list(range(len(frames)))), ListedObject(name="Cushion", description="patterned cushion", count=2, frames=[0]), ListedObject(name="TV remote", description="black remote", count=2, frames=[0]), ListedObject(name="Bible", description="red book", count=1, frames=[0])]
+
+    def same_object(self, crop_a: bytes, crop_b: bytes) -> bool:
+        return crop_a == crop_b
+
+    def verify_crop(self, crop: bytes, name: str):
+        return Verification(matches=True, better_name=None, confidence=0.9)
+
     def label(self, crop: bytes) -> Label:
-        name, cat = NAMES[_h(crop) % len(NAMES)]
-        return Label(label=name, category=cat, confidence=0.82)
+        name, cat, brand, model = NAMES[_h(crop) % len(NAMES)]
+        return Label(label=name, category=cat, confidence=0.82, brand=brand, model=model)
 
     def choose_candidate(self, image: bytes, candidates: list[str]) -> tuple[int, float]:
         if not candidates:

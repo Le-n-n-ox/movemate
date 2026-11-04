@@ -8,6 +8,7 @@ Funnel (how 'the photos I took' are matched to 'the video I took later'):
  5. Map the verdict to a finding. The decision logic lives in verdicts.py. 'not_visible' never becomes 'missing'.
 """
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from sqlalchemy.orm import Session
 
@@ -52,23 +53,43 @@ def run_audit(audit_id: str) -> None:
 
         rooms: dict[str, RoomFrames] = {}
         for rid, rels in rels_by_room.items():
-            rooms[rid] = RoomFrames(db.get(Room, rid).name, [storage.read_bytes(r) for r in rels],
-                                    lambda frames, c=client: _observe(c, frames))
+            if settings.audit_mode == "direct":
+                # Direct mode: skip frame labeling, use evenly spread frames
+                rooms[rid] = RoomFrames(db.get(Room, rid).name, [imaging.to_jpeg(imaging.open_image(storage.read_bytes(r)), max_side=512) for r in rels],
+                                        lambda frames, c=client: [[] for _ in frames])
+            else:
+                rooms[rid] = RoomFrames(db.get(Room, rid).name, [imaging.to_jpeg(imaging.open_image(storage.read_bytes(r)), max_side=512) for r in rels],
+                                        lambda frames, c=client: _observe(c, frames))
 
         checked, findings = 0, []
+        # Collect all items to check across rooms.
+        tasks = []
         for rid, rf in rooms.items():
-            items = db.query(Item).filter(Item.room_id == rid, Item.status == "confirmed", Item.kind != "consumable").all()  # consumables are checked by quantity, never as missing
+            items = db.query(Item).filter(Item.room_id == rid, Item.status == "confirmed", Item.kind != "consumable").all()
             if items:
                 _set_stage(db, audit, f"Finding items in {rf.name}")
-            for n, item in enumerate(items, 1):
-                _set_stage(db, audit, f"Checking {rf.name}: {item.label} ({n}/{len(items)})")
+            for item in items:
                 ref = storage.read_bytes(item.crop_path) if item.crop_path else rf.frames[0]
+                ref = imaging.to_jpeg(imaging.open_image(ref), max_side=512)
                 ctx = storage.read_bytes(item.source_image_path) if item.source_image_path else None
+                if ctx:
+                    ctx = imaging.to_jpeg(imaging.open_image(ctx), max_side=800)
                 hint = item.location_hint or (locations.room_path(db, item.location_id) if item.location_id else None)
-                r = check_item(client, label=item.label, quantity=item.quantity, hint=hint, alternates=item.alternate_locations or [],
-                               notes=item.notes, ref=ref, ctx=ctx, room_id=rid, rooms=rooms,
-                               on_stage=lambda s: _set_stage(db, audit, s))
+                tasks.append((rid, item, ref, ctx, hint))
+
+        def _run(task):
+            rid, item, ref, ctx, hint = task
+            r = check_item(client, label=item.label, quantity=item.quantity, hint=hint,
+                           alternates=item.alternate_locations or [], notes=item.notes, ref=ref, ctx=ctx,
+                           room_id=rid, rooms=rooms, on_stage=lambda s: None)
+            return rid, item, r
+
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            futures = [ex.submit(_run, t) for t in tasks]
+            for fut in as_completed(futures):
+                rid, item, r = fut.result()
                 checked += 1
+                _set_stage(db, audit, f"Checked {item.label} ({checked}/{len(tasks)})")
                 if r:
                     ev = r["evidence"]
                     findings.append(Finding(

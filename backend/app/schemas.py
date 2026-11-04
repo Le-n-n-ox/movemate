@@ -9,10 +9,10 @@ from pydantic import BaseModel, Field
 
 class BBox(BaseModel):
     """Normalized 0..1 relative to image width/height."""
-    x: float
-    y: float
-    w: float
-    h: float
+    x: float = Field(ge=0, le=1)
+    y: float = Field(ge=0, le=1)
+    w: float = Field(gt=0.01, le=1)
+    h: float = Field(gt=0.01, le=1)
 
 
 RoomType = Literal["bedroom", "bathroom", "kitchen", "living", "balcony", "garage", "laundry", "storage", "other"]
@@ -39,6 +39,8 @@ AuditStatus = Literal["draft", "running", "done", "failed"]
 class Health(BaseModel):
     status: str
     mock_models: bool
+    active_jobs: int = 0
+    worker_busy: bool = False
 
 
 # ---- properties and rooms ----
@@ -115,6 +117,7 @@ class ItemOut(BaseModel):
     source_image_url: str | None = None
     location_hint: str | None = None
     notes: str | None = None
+    description: str | None = None
     status: ItemStatus
     location_id: str | None = None
     location_path: str | None = None
@@ -124,11 +127,16 @@ class ItemOut(BaseModel):
     high_value: bool = False
     min_quantity: int | None = None
     alternate_locations: list[str] = []
+    needs_check: bool = False
+    detection_confidence: float | None = None
+    frames_seen: int | None = None
+    frames_total: int | None = None
 
 
 class ItemCreate(BaseModel):
     label: str = Field(min_length=1, max_length=300)
     quantity: int = Field(default=1, ge=1, le=999)
+    bbox: BBox | None = None
     kind: ItemKind = "movable"
     category: str | None = None
     location_id: str | None = None
@@ -143,6 +151,7 @@ class ItemCreate(BaseModel):
 class ItemPatch(BaseModel):
     label: str | None = None
     quantity: int | None = Field(default=None, ge=1, le=999)
+    bbox: BBox | None = None
     notes: str | None = None
     location_hint: str | None = None
     status: ItemStatus | None = None
@@ -169,6 +178,23 @@ class ConditionEventOut(BaseModel):
 class BaselineResult(BaseModel):
     capture_id: str
     items: list[ItemOut]
+
+
+class BaselineAck(BaseModel):
+    capture_id: str
+    status: str = "processing"
+
+
+class CaptureStatus(BaseModel):
+    capture_id: str
+    status: str
+    progress: float = 0.0
+    stage: str | None = None
+    error: str | None = None
+    item_count: int = 0
+    frames_seen: int = 0
+    frames_total: int = 0
+    items: list[ItemOut] = []
 
 
 class ConfirmAllResult(BaseModel):

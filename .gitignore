@@ -12,6 +12,12 @@ venv/
 .mypy_cache/
 *.egg-info/
 
+# archives
+*.zip
+
+# Graphify extension output (auto-generated)
+graphify-out/
+
 # node
 node_modules/
 .next/
@@ -22,9 +28,22 @@ npm-debug.log*
 data/*
 !data/.gitkeep
 
+# sqlite databases
+*.db
+
 # os / editor
 .DS_Store
 .idea/
 .vscode/
 *.log
-test.db
+backend/data
+backend/accuracy/videos/*
+!backend/accuracy/videos/.gitkeep
+
+# playwright / test artifacts
+screenshots/
+frontend/playwright-report/
+frontend/test-results/
+frontend/tests/e2e/screenshots/
+frontend/e2e/failures/
+frontend/e2e/screenshots/
