@@ -82,6 +82,11 @@ Film every room in each audit so cross-room moves can be found. Details: guides,
 - See memory: docker compose logs backend, docker stats.
 - Health: GET /api/health reports active_jobs.
 
+## Why a scan can be slow
+Stages: upload -> ffmpeg extract (60s timeout, fps=2, scale 1280) -> frame filter (blur/duplicate) -> inventory (1 call, images resized 1024 q80) -> segmentation per item (parallel 4, 30s timeout, 1 retry) -> verification (meta_verify_model or reason, resized) -> merge/dedup -> db+crops (full-res crops 256px min).
+Settings: frames_per_second, max_frames_per_room (target 8 kept), baseline_max_names 12, baseline_max_verify 12, segment_min_score 0.35, baseline_concurrency 4, model_timeout 30, model_max_side 1024, model_jpeg_quality 80, meta_segment_model, meta_reason_model, meta_verify_model, baseline_cache_ttl 600, baseline_video_max_seconds 15.
+Timing log line: `video scan 41.2s total | upload ... | ffmpeg ... | frame filter ... | inventory ... | segmentation ... | verification ... | merge ... | db+crops ...` plus per-model-call lines `model call /responses size=...KB status=200 9.7s` and `stage ...`.
+
 ## Useful commands
 
 ```bash

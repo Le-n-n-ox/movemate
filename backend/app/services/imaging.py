@@ -17,6 +17,10 @@ def to_jpeg(img: Image.Image, quality: int = 85, max_side: int = 1600) -> bytes:
     return buf.getvalue()
 
 
+def resize_for_model(data: bytes, max_side: int = 1024, quality: int = 80) -> bytes:
+    """Resize for model calls: long side <= max_side, JPEG q80. Full-res kept for crops."""
+    return to_jpeg(open_image(data), quality=quality, max_side=max_side)
+
 def normalize_upload(data: bytes, max_side: int = 1600) -> bytes:
     """Fix rotation and shrink big phone photos before storing or sending to models."""
     return to_jpeg(open_image(data), max_side=max_side)

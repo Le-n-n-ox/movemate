@@ -37,7 +37,7 @@ async def run_baseline_job(capture_id: str, room_id: str, raw: bytes, kind: str,
                 return items
             items = await asyncio.to_thread(_work)
             cap = db.get(Capture, capture_id)
-            cap.status = "done"; cap.progress = 1.0; cap.stage = "Done"; cap.item_count = len(items); db.commit()
+            cap.status = "done"; cap.progress = 1.0; cap.stage = "Done"; cap.error = None; cap.item_count = len(items); db.commit()
             log.info("scan capture=%s kind=%s time=%.1fs items=%d cost=%.4f", capture_id, kind, time.time()-t0, len(items), 0.01*len(items))
         except Exception as e:
             try:

@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     segment_nms_iou_cross: float = 0.7
     baseline_max_names: int = 12
     baseline_max_verify: int = 12
+    model_timeout: float = 30
+    model_max_side: int = 1024
+    model_jpeg_quality: int = 80
+    baseline_concurrency: int = 4
+    baseline_video_max_seconds: float = 15
+    meta_verify_model: str = ""
+    baseline_cache_ttl: int = 600
     meta_api_base: str = ""
     meta_api_key: str = ""
     meta_segment_model: str = "sam-3.1"

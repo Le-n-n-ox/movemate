@@ -68,7 +68,7 @@ class Capture(Base):
     kind: Mapped[str] = mapped_column(String(32))  # baseline_photo | baseline_video | audit_video | audit_frames | guest_photo
     media_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     frame_paths: Mapped[list] = mapped_column(JSON, default=list)
-    status: Mapped[str] = mapped_column(String(16), default="queued")
+    status: Mapped[str] = mapped_column(String(32), default="queued")
     progress: Mapped[float] = mapped_column(Float, default=0.0)
     stage: Mapped[str | None] = mapped_column(String(200), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)

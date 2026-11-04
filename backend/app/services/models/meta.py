@@ -282,12 +282,37 @@ def _save_segment_debug(image, request_body, raw_response, segments):
         pass
     return str(base)
 
+_CACHE = {}
 class MetaClient:
     def _post(self, path: str, body: dict) -> dict:
-        r = httpx.post(f"{settings.meta_api_base}{path}", json=body, timeout=90,
-                       headers={"Authorization": f"Bearer {settings.meta_api_key}"})
-        r.raise_for_status()
-        return r.json()
+        import time as _t, logging as _l
+        _t0 = _t.time()
+        _cache_key = None
+        try:
+            import hashlib as _h, time as _tt
+            import json as _jj; _cache_key = _h.sha1(_jj.dumps(body, sort_keys=True, default=str).encode()).hexdigest()
+            if _cache_key in _CACHE and _tt.time() - _CACHE[_cache_key][0] < getattr(settings, "baseline_cache_ttl", 600):
+                return _CACHE[_cache_key][1]
+        except Exception: pass
+        # log image sizes in KB
+        try:
+            import json as _j
+            s = _j.dumps(body)
+            _l.getLogger(__name__).info("model call %s size=%.1fKB", path, len(s)/1024)
+        except Exception: pass
+        try:
+            r = httpx.post(f"{settings.meta_api_base}{path}", json=body, timeout=settings.model_timeout if hasattr(settings, "model_timeout") else 30,
+                           headers={"Authorization": f"Bearer {settings.meta_api_key}"})
+            _l.getLogger(__name__).info("model call %s status=%s %.1fs", path, r.status_code, _t.time()-_t0)
+            r.raise_for_status()
+            _res = r.json()
+            try:
+                if _cache_key: _CACHE[_cache_key] = (_t.time(), _res)
+            except Exception: pass
+            return _res
+        except httpx.HTTPStatusError as e:
+            _l.getLogger(__name__).warning("model call %s status=%s %.1fs", path, e.response.status_code, _t.time()-_t0)
+            raise
 
     def _chat(self, model: str, images: list[bytes], prompt: str) -> str:
         """Send images + prompt to /v1/responses.
@@ -297,7 +322,12 @@ class MetaClient:
         base64 into the text field is rejected by vision-capable models here.
         """
         content = []
+        from .. import imaging as _imaging
         for img in images or []:
+            try:
+                img = _imaging.resize_for_model(img, max_side=getattr(settings, "model_max_side", 1024), quality=getattr(settings, "model_jpeg_quality", 80))
+            except Exception:
+                pass
             content.append({"type": "input_image", "image_url": f"data:image/jpeg;base64,{_b64(img)}"})
         content.append({"type": "input_text", "text": prompt})
         raw = self._post("/responses", {"model": model,
@@ -474,7 +504,8 @@ class MetaClient:
     def verify_crop(self, crop: bytes, name: str) -> Verification:
         def _do():
             prompt = "Named object: " + name + ". " + VERIFY_PROMPT
-            d = _parse_json(self._chat(settings.meta_reason_model, [crop], prompt))
+            _vm = getattr(settings, "meta_verify_model", "") or settings.meta_reason_model
+            d = _parse_json(self._chat(_vm, [crop], prompt))
             bn = d.get("better_name")
             return Verification(matches=bool(d.get("matches", False)), better_name=str(bn) if bn else None, confidence=float(d.get("confidence", 0.5)))
         return self._with_retry(_do)

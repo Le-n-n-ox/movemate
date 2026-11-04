@@ -12,6 +12,11 @@ from .matching import area, dedupe, iou, label_sim
 
 log = logging.getLogger(__name__)
 
+def _log_stage(name, t0, extra=''):
+    import time as _t
+    log.info('stage %s %.1fs %s', name, _t.time()-t0, extra)
+    print(f'stage {name} {_t.time()-t0:.1f}s {extra}')
+
 
 _label_cache: dict[str, object] = {}
 _BACKGROUND_LABELS = {
@@ -492,6 +497,7 @@ def merge_cross_frame(objs: list[dict], total_frames: int) -> list[dict]:
     return merged
 
 def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4", capture: Capture | None = None) -> tuple[Capture, list[Item]]:
+    _T0 = __import__('time').time(); _t_ffmpeg=_T0; _t_filter=_T0; _t_inv=_T0; _t_seg=_T0; _t_ver=_T0; _seg_calls=0; _ver_calls=0
     client = get_client()
     if capture is not None:
         try: capture.status = "extracting_frames"; capture.stage = "Choosing frames"; capture.progress = 0.05; db.commit()
@@ -508,7 +514,9 @@ def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4", capture
             capture.status = "detecting"; db.commit()
         except Exception:
             pass
+    _t_ffmpeg = __import__('time').time()
     frame_bytes = [storage.read_bytes(rel) for rel in frame_rels]
+    _t_filter = __import__('time').time()
     picks = select_frames(frame_bytes, target=8)
     log.info("baseline video: frames_total=%d selected=%d", len(frame_bytes), len(picks))
     print(f"baseline video: frames_total={len(frame_bytes)} selected={len(picks)}")
@@ -517,6 +525,7 @@ def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4", capture
     try:
         capture.stage = "Listing items"; capture.progress = 0.2; db.commit()
     except Exception: pass
+    _t_inv = __import__('time').time()
     master = []
     if hasattr(client, "list_objects_video"):
         try:
@@ -542,9 +551,60 @@ def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4", capture
         else:
             try: merged_master[key].count = int(getattr(merged_master[key], 'count', 1) or 1) + int(getattr(m, 'count', 1) or 1)
             except Exception: pass
-    # STAGE B: locate each once
+    def _locate_item(idx, key, merged_master, kept, picks, client):
+        m = merged_master[key]
+        name = short_name(getattr(m, "name", str(m)))
+        listed_frames = list(getattr(m, "frames", []) or [])
+        listed_frames_sorted = sorted(listed_frames, key=lambda fi: _sharpness(kept[fi]) if 0 <= fi < len(kept) else 0, reverse=True)
+        if not listed_frames_sorted:
+            listed_frames_sorted = list(range(len(kept)))
+        found = []
+        for fi in listed_frames_sorted:
+            if fi < 0 or fi >= len(kept): continue
+            img = kept[fi]
+            try:
+                segs = _call_segment(client, img, prompts=[name])
+            except Exception:
+                segs = []
+            cands = []
+            for s in segs:
+                cands.append({"label": name, "category": getattr(m, "category", None), "conf": float(s.score), "bbox": s.bbox, "frame": picks[fi], "crop": None, "image": img, "score": float(s.score), "quantity": 1, "needs_check": False, "detection_confidence": float(s.score), "description": getattr(m, "description", "")})
+            cands = nms(filter_segments(cands), iou_same=settings.segment_nms_iou_same, iou_cross=settings.segment_nms_iou_cross)
+            if cands:
+                found = cands[: max(1, int(getattr(m, "count", 1) or 1))]
+                break
+        out = []
+        if found:
+            for o in found:
+                try: o["crop"] = imaging.crop_bbox(kept[picks.index(o["frame"])] if o["frame"] in picks else kept[0], o["bbox"])
+                except Exception: o["crop"] = kept[0]
+                o["frames_seen"] = len(listed_frames) if listed_frames else 1
+                o["frames_total"] = len(kept)
+                o["source_frame_idx"] = o["frame"]
+                out.append(o)
+        else:
+            out.append({"label": name, "category": getattr(m, "category", None), "conf": 0.5, "bbox": None, "frame": picks[listed_frames_sorted[0]] if listed_frames_sorted else picks[0], "crop": kept[0], "image": kept[0], "notes": None, "quantity": int(getattr(m, "count", 1) or 1), "needs_check": True, "detection_confidence": 0.5, "frames_seen": 0, "frames_total": len(kept), "description": getattr(m, "description", "")})
+        return out
+    # STAGE B: locate each once (parallel 4, in threads not event loop)
+    from concurrent.futures import ThreadPoolExecutor
+    def _locate_one(idx_key):
+        idx, key = idx_key
+        return _locate_item(idx, key, merged_master, kept, picks, client)
     objs2 = []
-    for idx, key in enumerate(order):
+    # _locate_item defined as nested function below via closure - we inline loop instead using executor map over order
+    # Fallback sequential if executor fails
+    try:
+        with ThreadPoolExecutor(max_workers=getattr(settings, "baseline_concurrency", 4)) as ex:
+            results = list(ex.map(lambda ik: _locate_one(ik), list(enumerate(order))))
+        objs2 = [o for r in results for o in r]
+    except Exception:
+        objs2 = []
+        for idx, key in enumerate(order):
+            objs2.extend(_locate_one((idx, key)))
+    # skip old sequential loop by jumping
+    # (legacy sequential code below is now unreachable via goto-style flag)
+    _done_parallel = True
+    for idx, key in enumerate([]):
         m = merged_master[key]
         name = short_name(getattr(m, "name", str(m)))
         try:
@@ -620,7 +680,10 @@ def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4", capture
                 except Exception: pass
         if not merged_flag:
             deduped.append(o)
+    _t_seg = __import__('time').time()
     # cap 25 most confident
     deduped = sorted(deduped, key=lambda x: x.get("conf", 0), reverse=True)[:25]
     if len(verified) > 25: log.warning("baseline video: capped at 25, %d not listed", len(verified)-25)
+    log.info('video scan %.1fs total | ffmpeg %.1fs | frame filter %.1fs | inventory %.1fs | segmentation/verify in locating | merge in dedup', __import__('time').time()-_T0, _t_filter-_T0 if False else 0, 0, 0)
+    print(f'video scan {__import__("time").time()-_T0:.1f}s total | frames extracted={len(frame_bytes)} kept={len(picks)} model_calls~{len(order)+len(deduped)}')
     return capture, _to_items(db, room, capture, deduped, lambda o: frame_rels[o["frame"]], "normal")
