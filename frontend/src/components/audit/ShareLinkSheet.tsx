@@ -58,7 +58,7 @@ export function ShareLinkSheet({
               <Share2 className="size-4 mr-2" /> Share
             </Button>
           </div>
-          <div className="flex justify-center bg-white rounded-xl p-3">
+          <div className="qr-surface flex justify-center rounded-xl p-3">
             <QRCodeSVG value={url} size={140} />
           </div>
           <p className="text-xs text-muted-foreground text-center">The cleaner can scan this QR code from your screen.</p>

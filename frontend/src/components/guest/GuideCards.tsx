@@ -9,7 +9,7 @@ export function GuideCards({ guide }: { guide: GuestGuide }) {
 
       {guide.warnings.length > 0 && (
         <div role="note" className="warn-box pop flex items-start gap-3 !p-4 text-base">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-warn/30 text-amber-800 dark:text-amber-300">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-warn/20 text-warn">
             <AlertTriangle className="size-5" aria-hidden />
           </span>
           <div className="space-y-1.5">

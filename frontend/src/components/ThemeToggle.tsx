@@ -14,7 +14,7 @@ export function ThemeToggle() {
       onClick={() => setMode(NEXT[mode])}
       aria-label={`Theme: ${LABEL[mode]}. Tap to change.`}
       title={`Theme: ${LABEL[mode]}`}
-      className="no-print inline-grid size-12 place-items-center rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      className="no-print inline-grid size-12 place-items-center rounded-xl text-muted-foreground hover:bg-accent hover:text-accent-foreground"
     >
       <Icon className="size-5" aria-hidden />
     </button>

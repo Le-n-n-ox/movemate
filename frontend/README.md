@@ -41,8 +41,30 @@ export default defineConfig([
     },
   },
 ])
+```
+
+## Test on your phone
+
+The Vite dev server already listens on all interfaces (`server.host: true`), so a phone on the same Wi-Fi can load the app at your computer's LAN IP.
+
+1. Put phone and computer on the same Wi-Fi (not a guest network).
+2. Find the computer's LAN IP (Windows): `ipconfig` → IPv4 Address, e.g. `192.168.100.13`.
+3. Start the dev server: `npm run dev` (or the full stack with `docker compose up --build` from the repo root).
+4. Open `http://<YOUR_IP>:3000` on the phone (e.g. `http://192.168.100.13:3000`).
+5. Allow inbound TCP 3000 (frontend) and 8000 (backend/API) in your firewall.
+
+If the phone shows an offline banner or blank data, the API is still pointing at `localhost`. Set the LAN IP in the repo-root `.env` and restart:
 
 ```
+PUBLIC_BASE_URL=http://<YOUR_IP>:8000
+FRONTEND_ORIGIN=http://<YOUR_IP>:3000
+VITE_API_URL=http://<YOUR_IP>:8000
+```
+
+Then rebuild/restart the containers (`docker compose up -d --build`) and hard-refresh the phone. Verify from the PC with `curl http://<YOUR_IP>:8000/api/health`.
+
+Camera: photos via the file picker work over plain HTTP. Live `getUserMedia` needs HTTPS on most phones; use a tunnel (e.g. `ngrok http 3000`) only if you need it.
+
 
 You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
 

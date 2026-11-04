@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, ScanLine, Video } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, mediaUrl } from "@/lib/api";
 import type { CaptureStatus, ItemOut, BBox } from "@/lib/types";
 import { BBoxOverlay } from "@/components/BBoxOverlay";
 import { FilePicker } from "@/components/FilePicker";
@@ -105,7 +105,7 @@ export function ScanCard({ roomId, suggested, onDone, selectedId, onSelect }: {
   }
 
   const boxes = capture ? suggested.filter((i) => capture.ids.includes(i.id)) : [];
-  const sourceSrc = boxes.find((b) => b.source_image_url)?.source_image_url ?? capture?.preview ?? null;
+  const sourceSrc = mediaUrl(boxes.find((b) => b.source_image_url)?.source_image_url) ?? capture?.preview ?? null;
   const [hideBoxes, setHideBoxes] = useState(false);
 
   return (

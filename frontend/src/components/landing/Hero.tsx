@@ -1,7 +1,8 @@
 import { MotionConfig, motion } from "motion/react";
-import { AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle, Check, Home, Sparkles } from "lucide-react";
 import { ActionButton, HashButton } from "@/components/LinkButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { VideoBackground } from "@/components/landing/VideoBackground";
 
 
 
@@ -17,8 +18,13 @@ export function LandingHeader({ onOpenApp }: { onOpenApp: () => void }) {
   return (
     <header className="glass" data-allow-overlap style={{ top: "env(safe-area-inset-top, 0px)" }}>
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-2">
-        <a href="#top" className="flex min-h-12 items-center gap-2 font-display text-lg font-bold tracking-tight">
-          <img src="/icon.svg" alt="" className="size-8 rounded-lg" /> MoveMate
+        <a href="#top" className="flex min-h-12 items-center gap-2.5 font-display text-lg font-bold tracking-tight group">
+          <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-110 group-hover:rotate-3">
+            <Home className="size-5" />
+          </div>
+          <span className="bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+            MoveMate
+          </span>
         </a>
         <nav className="hidden items-center gap-5 text-sm font-medium lg:flex" aria-label="Sections">
           {NAV.map((n) => (
@@ -48,8 +54,18 @@ const ROWS = [
 
 function PhoneMock() {
   return (
-    <div className="pointer-events-none min-w-0 w-full" aria-hidden="true">
-      <div className="mx-auto w-full max-w-[19rem] rounded-[2.5rem] border-2 border-border bg-background p-4 shadow-lg">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
+      className="pointer-events-none min-w-0 w-full"
+      aria-hidden="true"
+    >
+      <motion.div
+        animate={{ y: [0, -10, 0] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        className="mx-auto w-full max-w-[19rem] rounded-[2.5rem] border-2 border-border bg-background p-4 shadow-2xl"
+      >
         <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-muted" />
         <div className="space-y-3">
           <div className="rounded-2xl bg-accent p-4 text-center">
@@ -61,7 +77,7 @@ function PhoneMock() {
               key={room}
               initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7 + i * 0.15, duration: 0.4 }}
+              transition={{ delay: 0.8 + i * 0.15, duration: 0.4 }}
               className="flex items-center gap-3 rounded-xl border bg-card p-3"
             >
               <span className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
@@ -79,16 +95,26 @@ function PhoneMock() {
             </span>
           </div>
         </div>
-      </div>
+      </motion.div>
       <div className="pointer-events-none mt-4 flex flex-wrap justify-center gap-2">
-        <span className="rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-md">
+        <motion.span
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.5 }}
+          className="rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-md"
+        >
           Cleaner reported this
-        </span>
-        <span className="rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-md">
+        </motion.span>
+        <motion.span
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.7 }}
+          className="rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-md"
+        >
           Waiting for your review
-        </span>
+        </motion.span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -101,8 +127,9 @@ const ROLES = [
 export function Hero({ onOpenApp }: { onOpenApp: () => void }) {
   return (
     <MotionConfig reducedMotion="user">
-      <section id="top">
-        <div className="mx-auto grid max-w-6xl min-w-0 grid-cols-1 items-center gap-12 px-4 pt-16 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:pt-24 lg:pb-24">
+      <section id="top" className="relative isolate overflow-hidden">
+        <VideoBackground />
+        <div className="relative mx-auto grid max-w-6xl min-w-0 grid-cols-1 items-center gap-12 px-4 pt-16 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:pt-24 lg:pb-24">
           <div className="min-w-0 space-y-7">
             <motion.h1
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}

@@ -21,13 +21,21 @@ const FACTS: [number, string][] = [
 
 export function Facts() {
   return (
-    <section className="border-y bg-secondary/50" aria-label="At a glance">
-      <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-y-8 px-4 py-10 md:grid-cols-4 md:divide-x">
+    <section className="border-y bg-muted/30" aria-label="At a glance">
+      <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-y-12 px-4 py-16 md:grid-cols-4 md:divide-x">
         {FACTS.map(([n, label]) => (
-          <div key={label} className="flex flex-col-reverse gap-1 px-4 text-center">
-            <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="font-display text-5xl font-extrabold text-primary"><AnimatedNumber value={n} /></dd>
-          </div>
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-col-reverse gap-2 px-4 text-center"
+          >
+            <dt className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{label}</dt>
+            <dd className="font-display text-6xl font-extrabold text-primary tracking-tighter">
+              <AnimatedNumber value={n} />
+            </dd>
+          </motion.div>
         ))}
       </dl>
     </section>
@@ -106,30 +114,33 @@ const WHY: { icon: LucideIcon; problem: string; answer: string }[] = [
 
 export function Why() {
   return (
-    <section id="why" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
+    <section id="why" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24">
       <Reveal>
         <h2 className={H2}>Why a quick look is not enough</h2>
-        <p className="mt-3 max-w-2xl text-muted-foreground">
+        <p className="mt-3 max-w-2xl text-muted-foreground text-lg leading-relaxed">
           A cleaner cannot spot what is missing from a home nobody has listed. MoveMate starts by recording the home, then checks it after every stay.
         </p>
       </Reveal>
-      <div className="mt-10 grid items-start gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-4">
+      <div className="mt-16 grid items-start gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="space-y-6">
           {WHY.map(({ icon: Icon, problem, answer }, i) => (
             <Reveal key={problem} delay={i * 0.08}>
-              <Card className="card-lift flex-row gap-4 p-5">
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-primary">
-                  <Icon className="size-5" aria-hidden />
+              <Card className="card-lift flex-row gap-6 p-6 transition-all duration-300 hover:border-primary/30">
+                <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-accent text-primary transition-transform group-hover:scale-110">
+                  <Icon className="size-6" aria-hidden />
                 </span>
-                <div>
-                  <h3 className="font-display text-lg font-bold">{problem}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{answer}</p>
+                <div className="space-y-1">
+                  <h3 className="font-display text-xl font-bold">{problem}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{answer}</p>
                 </div>
               </Card>
             </Reveal>
           ))}
         </div>
-        <Reveal delay={0.15}><ReadinessRing /></Reveal>
+        <Reveal delay={0.15} className="relative">
+          <div className="absolute -inset-4 bg-primary/5 blur-3xl rounded-full" />
+          <ReadinessRing />
+        </Reveal>
       </div>
     </section>
   );
@@ -233,30 +244,32 @@ const COMPARE: [string, string, string][] = [
 
 export function Compare() {
   return (
-    <section id="compare" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
+    <section id="compare" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24">
       <Reveal>
         <h2 className={H2}>Not just another checklist</h2>
-        <p className="mt-3 max-w-2xl text-muted-foreground">
+        <p className="mt-3 max-w-2xl text-muted-foreground text-lg leading-relaxed">
           A plain checklist tells a cleaner what to tick. It cannot tell anyone what is missing. Here is where MoveMate goes further.
         </p>
       </Reveal>
-      <div className="mt-10 space-y-3">
-        <div className="hidden grid-cols-[1fr_1fr_1.2fr] px-4 text-sm font-semibold text-muted-foreground md:grid" aria-hidden>
+      <div className="mt-16 space-y-4">
+        <div className="hidden grid-cols-[1fr_1fr_1.2fr] px-6 text-sm font-bold uppercase tracking-widest text-muted-foreground md:grid">
           <span />
-          <span>A plain checklist</span>
-          <span className="text-primary">MoveMate</span>
+          <span className="pl-4">A plain checklist</span>
+          <span className="pl-4 text-primary">MoveMate</span>
         </div>
         {COMPARE.map(([what, plain, mm], i) => (
           <Reveal key={what} delay={i * 0.05}>
-            <Card className="gap-0 overflow-hidden p-0 md:grid md:grid-cols-[1fr_1fr_1.2fr]">
-              <p className="p-4 font-display font-bold">{what}</p>
-              <p className="flex items-start gap-2 p-4 pt-0 text-sm text-muted-foreground md:pt-4">
-                <Minus className="mt-0.5 size-4 shrink-0" aria-hidden />
-                <span><span className="font-semibold text-foreground md:hidden">Plain checklist: </span>{plain}</span>
+            <Card className="gap-0 overflow-hidden p-0 md:grid md:grid-cols-[1fr_1fr_1.2fr] transition-all duration-300 hover:border-primary/30">
+              <p className="p-6 font-display font-bold border-r border-border">
+                {what}
               </p>
-              <p className="flex items-start gap-2 bg-accent/70 p-4 text-sm font-medium text-accent-foreground">
-                <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                <span><span className="font-semibold md:hidden">MoveMate: </span>{mm}</span>
+              <p className="flex items-start gap-3 p-6 pt-4 text-sm text-muted-foreground md:pt-6">
+                <Minus className="mt-1 size-4 shrink-0 text-muted-foreground/40" aria-hidden />
+                <span className="leading-relaxed"><span className="font-semibold text-foreground md:hidden">Plain checklist: </span>{plain}</span>
+              </p>
+              <p className="flex items-start gap-3 bg-accent/40 p-6 text-sm font-medium text-accent-foreground md:pt-6">
+                <Check className="mt-1 size-4 shrink-0 text-primary" aria-hidden />
+                <span className="leading-relaxed"><span className="font-semibold md:hidden">MoveMate: </span>{mm}</span>
               </p>
             </Card>
           </Reveal>

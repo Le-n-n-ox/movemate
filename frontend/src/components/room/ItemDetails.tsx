@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Gem, History, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, mediaUrl } from "@/lib/api";
 import { CONDITIONS, KINDS } from "@/lib/labels";
 import type { ConditionEventOut, ItemCondition, ItemOut, ItemPatch, RoomOut } from "@/lib/types";
 import { useRole } from "@/hooks/useRole";
@@ -134,7 +134,7 @@ export function ItemDetails({ item, places, actor, onChanged }: {
               <p className="font-semibold capitalize">{h.previous ? `${h.previous.replace("_", " ")} → ` : ""}{h.condition.replace("_", " ")}</p>
               <p className="text-xs text-muted-foreground">{h.actor}{h.role ? ` (${h.role})` : ""} · {new Date(h.created_at).toLocaleString()}</p>
               {h.note && <p>{h.note}</p>}
-              {h.photo_url && <img src={h.photo_url} alt="Condition evidence" className="mt-2 max-h-40 rounded-lg border" />}
+              {h.photo_url && <img src={mediaUrl(h.photo_url)} alt="Condition evidence" className="mt-2 max-h-40 rounded-lg border" />}
             </li>
           ))}
         </ol>

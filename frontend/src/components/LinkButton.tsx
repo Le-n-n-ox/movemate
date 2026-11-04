@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const base =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-base font-semibold";
+  "inline-flex min-h-12 w-full select-none items-center justify-center gap-2 rounded-xl border border-transparent px-4 text-base font-semibold outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 const variants = {
   default: "bg-primary text-primary-foreground",
-  outline: "border border-input bg-card text-foreground",
+  outline: "border-border bg-card text-foreground",
 };
 
 type Variant = keyof typeof variants;
