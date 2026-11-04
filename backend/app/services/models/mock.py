@@ -27,12 +27,19 @@ def _h(data: bytes) -> int:
 
 
 class MockClient:
-    def segment(self, image: bytes) -> list[Segment]:
+    def segment(self, image: bytes, height: int = None, width: int = None, prompts: list[str] | None = None) -> list[Segment]:
         return [
             Segment(bbox={"x": 0.08, "y": 0.35, "w": 0.28, "h": 0.40}, score=0.95),
             Segment(bbox={"x": 0.42, "y": 0.50, "w": 0.18, "h": 0.22}, score=0.90),
             Segment(bbox={"x": 0.66, "y": 0.28, "w": 0.24, "h": 0.45}, score=0.88),
         ]
+
+    def list_objects(self, image: bytes):
+        # Mock returns no stage-A list so baseline keeps legacy mock behaviour.
+        return []
+
+    def verify_crop(self, crop: bytes, name: str):
+        return (True, 0.9)
 
     def label(self, crop: bytes) -> Label:
         name, cat, brand, model = NAMES[_h(crop) % len(NAMES)]

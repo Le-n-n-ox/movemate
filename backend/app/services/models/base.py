@@ -9,6 +9,7 @@ class Segment:
     bbox: dict  # normalized {x,y,w,h}
     score: float = 1.0
     polygon: list | None = None
+    label: str | None = None
 
 
 @dataclass
@@ -40,8 +41,21 @@ class Judgement:
     at_usual_spot: bool | None = None  # False = seen, but not where it normally sits
 
 
+@dataclass
+class ListedObject:
+    name: str
+    description: str = ""
+    count: int = 1
+    size: str = "medium"  # small|medium|large
+    category: str | None = None
+
+
 class VisionClient(Protocol):
-    def segment(self, image: bytes, height: int = None, width: int = None) -> list[Segment]: ...
+    def segment(self, image: bytes, height: int = None, width: int = None, prompts: list[str] | None = None) -> list[Segment]: ...
+
+    def list_objects(self, image: bytes) -> list[ListedObject]: ...
+
+    def verify_crop(self, crop: bytes, name: str) -> tuple[bool, float]: ...
 
     def label(self, crop: bytes) -> Label: ...
 

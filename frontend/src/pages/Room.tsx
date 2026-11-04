@@ -25,6 +25,7 @@ export default function Room() {
   const items = useAsync(() => api.listItems(roomId), [roomId]);
   const places = useAsync(() => api.listLocations(roomId), [roomId]);
   const [name, setName] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const refresh = () => { void room.refresh(true); void items.refresh(true); void places.refresh(true); };
   const suggested = items.data?.filter((i) => i.status === "suggested") ?? [];
@@ -71,7 +72,7 @@ export default function Room() {
           <RoomHeader room={room.data} onChanged={refresh} />
 
           <div id="scan" className="jump-target">
-            <ScanCard roomId={roomId} suggested={suggested} onDone={refresh} />
+            <ScanCard roomId={roomId} suggested={suggested} onDone={refresh} selectedId={selectedId} onSelect={setSelectedId} />
           </div>
 
           {suggested.length > 0 && (
@@ -85,7 +86,7 @@ export default function Room() {
                 <Button variant="outline" className="btn-tap" onClick={confirmAll}><CheckCheck className="size-5" /> Confirm all</Button>
               </div>
               <div className="stagger space-y-4">
-                {suggested.map((i) => <SuggestedCard key={i.id} item={i} onChanged={refresh} />)}
+                {suggested.map((i, idx) => <SuggestedCard key={i.id} item={i} index={idx} highlighted={selectedId === i.id} onSelect={setSelectedId} onChanged={refresh} />)}
               </div>
             </section>
           )}

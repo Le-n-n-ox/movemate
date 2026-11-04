@@ -13,7 +13,7 @@ import re
 import httpx
 
 from ...config import settings
-from .base import Guide, Judgement, Label, Segment
+from .base import Guide, Judgement, Label, ListedObject, Segment
 
 LABEL_PROMPT = (
     "Identify the single main object in this image. If visible, extract the brand and model name. "
@@ -80,6 +80,208 @@ def _extract_text(raw: dict) -> str:
     return "\n".join(parts).strip()
 
 
+
+
+LIST_OBJECTS_PROMPT = (
+    "List every distinct, guest-relevant or host-relevant object in this photo. "
+    "Ignore walls, floors, fabric patterns, shadows and generic textures. "
+    "Name items specifically, for example \"black TV remote\", \"orange decorative cushion\", \"Bible\". "
+    'Return JSON only: an array of {"name": "...", "description": "...", "count": 1, "size": "small|medium|large"}. '
+    "If none, return []."
+)
+
+VERIFY_PROMPT = (
+    "Does the crop show the named object? Return JSON only: {\"matches\": true|false, \"confidence\": <0 to 1>}"
+)
+
+
+def _clamp01(v):
+    return max(0.0, min(1.0, float(v)))
+
+
+def _points_to_bbox(points, image_w, image_h):
+    """Derive normalized bbox from mask/polygon points (preferred over trusting polygon)."""
+    pts = []
+    if isinstance(points, dict):
+        # mask as {x:..., y:...} single point not useful
+        return None
+    if not isinstance(points, (list, tuple)):
+        return None
+    for pt in points:
+        if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+            pts.append((float(pt[0]), float(pt[1])))
+        elif isinstance(pt, dict) and "x" in pt and "y" in pt:
+            pts.append((float(pt["x"]), float(pt["y"])))
+    if not pts:
+        return None
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    # pixel if any coord > 1.5, else normalized
+    if max(max(xs), max(ys)) > 1.5:
+        x0, x1 = min(xs), max(xs)
+        y0, y1 = min(ys), max(ys)
+        return {"x": _clamp01(x0 / image_w), "y": _clamp01(y0 / image_h),
+                "w": _clamp01((x1 - x0) / image_w), "h": _clamp01((y1 - y0) / image_h)}
+    return {"x": _clamp01(min(xs)), "y": _clamp01(min(ys)),
+            "w": _clamp01(max(xs) - min(xs)), "h": _clamp01(max(ys) - min(ys))}
+
+
+def _vals_to_xywh(vals, image_w, image_h, fmt=None):
+    """vals are 4 numbers. fmt: xywh|xyxy|None. None assumes xywh (legacy SAM prompt)."""
+    v = [float(x) for x in vals]
+    if len(v) != 4:
+        return None
+    is_norm = max(v) <= 1.5 and min(v) >= -0.01
+    if fmt == "xyxy":
+        if is_norm:
+            x0, y0, x1, y1 = v
+            return {"x": _clamp01(x0), "y": _clamp01(y0), "w": _clamp01(x1 - x0), "h": _clamp01(y1 - y0)}
+        x0, y0, x1, y1 = v
+        return {"x": _clamp01(x0 / image_w), "y": _clamp01(y0 / image_h),
+                "w": _clamp01((x1 - x0) / image_w), "h": _clamp01((y1 - y0) / image_h)}
+    # xywh default, but model sometimes returns xyxy in same slot.
+    # If xywh interpretation would overflow the image, reinterpret as xyxy.
+    if is_norm:
+        if v[0] + v[2] > 1.05 or v[1] + v[3] > 1.05:
+            # try xyxy normalized
+            if v[2] > v[0] and v[3] > v[1]:
+                return {"x": _clamp01(v[0]), "y": _clamp01(v[1]), "w": _clamp01(v[2] - v[0]), "h": _clamp01(v[3] - v[1])}
+        return {"x": _clamp01(v[0]), "y": _clamp01(v[1]), "w": _clamp01(v[2]), "h": _clamp01(v[3])}
+    if v[0] + v[2] > image_w * 1.02 or v[1] + v[3] > image_h * 1.02:
+        if v[2] <= image_w and v[3] <= image_h and v[2] > v[0] and v[3] > v[1]:
+            return {"x": _clamp01(v[0] / image_w), "y": _clamp01(v[1] / image_h),
+                    "w": _clamp01((v[2] - v[0]) / image_w), "h": _clamp01((v[3] - v[1]) / image_h)}
+    return {"x": _clamp01(v[0] / image_w), "y": _clamp01(v[1] / image_h),
+            "w": _clamp01(v[2] / image_w), "h": _clamp01(v[3] / image_h)}
+
+
+
+def _batch_is_xyxy(raw_boxes, image_w, image_h):
+    """Decide if a whole response batch is xyxy instead of xywh.
+
+    Model flips format nondeterministically. If any box interpreted as xywh
+    would overflow the image, the batch is almost certainly xyxy.
+    """
+    if not raw_boxes or not image_w or not image_h:
+        return False
+    for s in raw_boxes:
+        if not isinstance(s, dict):
+            continue
+        b = s.get("bbox")
+        if not (isinstance(b, (list, tuple)) and len(b) == 4 and all(isinstance(x, (int, float)) for x in b)):
+            continue
+        x, y, w, h = [float(v) for v in b]
+        if max(b) <= 1.5:
+            continue  # normalized, handled per-box
+        if x + w > image_w * 1.02 or y + h > image_h * 1.02:
+            return True
+    return False
+
+def to_normalized_bbox(raw, image_w, image_h):
+    """Convert any received box format to normalized 0..1 {x,y,w,h}; None if invalid.
+
+    Supports: xyxy pixels, xywh pixels, normalized xyxy, normalized xywh,
+    mask/polygon/points derived (preferred, clamped to image).
+    Dicts may carry format hints: {"format": "xyxy"|"xywh"} or x1/y1/x2/y2 keys.
+    Lists are treated as xywh (the format our prompt requests).
+    """
+    if raw is None or not image_w or not image_h:
+        return None
+    try:
+        if isinstance(raw, dict):
+            # mask-derived first
+            for key in ("mask", "polygon", "points"):
+                if key in raw and raw[key] is not None:
+                    b = _points_to_bbox(raw[key], image_w, image_h)
+                    if b is not None:
+                        return b
+            if any(k in raw for k in ("x1", "y1", "x2", "y2", "xmin", "ymin", "xmax", "ymax")):
+                x0 = raw.get("x1", raw.get("xmin"))
+                y0 = raw.get("y1", raw.get("ymin"))
+                x1 = raw.get("x2", raw.get("xmax"))
+                y1 = raw.get("y2", raw.get("ymax"))
+                if None in (x0, y0, x1, y1):
+                    return None
+                return _vals_to_xywh([x0, y0, x1, y1], image_w, image_h, fmt="xyxy")
+            if all(k in raw for k in ("x", "y", "w", "h")):
+                fmt = str(raw.get("format", "")).lower() or None
+                return _vals_to_xywh([raw["x"], raw["y"], raw["w"], raw["h"]], image_w, image_h, fmt=fmt)
+            if "bbox" in raw:
+                b = raw["bbox"]
+                fmt = str(raw.get("format", "")).lower() or None
+                if isinstance(b, (list, tuple)) and fmt in ("xyxy", "xywh"):
+                    return _vals_to_xywh(list(b), image_w, image_h, fmt=fmt)
+                return to_normalized_bbox(b, image_w, image_h)
+            return None
+        if isinstance(raw, (list, tuple)):
+            # list of points (mask) vs 4 numbers
+            if len(raw) == 4 and all(isinstance(x, (int, float)) for x in raw):
+                return _vals_to_xywh(list(raw), image_w, image_h, fmt="xywh")
+            b = _points_to_bbox(raw, image_w, image_h)
+            return b
+    except Exception:
+        return None
+    return None
+
+def _debug_sanitize(obj):
+    if isinstance(obj, dict):
+        out = {}
+        for k, v in obj.items():
+            if k == "image_url" and isinstance(v, str) and v.startswith("data:"):
+                out[k] = f"data:image/jpeg;base64,<{len(v)} chars redacted>"
+            elif k.lower() in ("authorization", "api_key", "apikey", "key"):
+                out[k] = "<redacted>"
+            else:
+                out[k] = _debug_sanitize(v)
+        return out
+    if isinstance(obj, list):
+        return [_debug_sanitize(x) for x in obj]
+    return obj
+
+
+def _save_segment_debug(image, request_body, raw_response, segments):
+    """BASELINE_DEBUG=true: save model image, sanitized request/response, overlay."""
+    import hashlib as _h
+    from pathlib import Path as _P
+    if not settings.baseline_debug:
+        return None
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception:
+        return None
+    digest = _h.sha1(image or b"").hexdigest()[:16]
+    base = _P(settings.data_dir) / "debug" / digest
+    base.mkdir(parents=True, exist_ok=True)
+    (base / "model_image.jpg").write_bytes(image or b"")
+    (base / "request.json").write_text(json.dumps(_debug_sanitize(request_body or {}), indent=2), encoding="utf-8")
+    (base / "response.json").write_text(json.dumps(_debug_sanitize(raw_response or {}), indent=2), encoding="utf-8")
+    try:
+        import io as _io
+        img = Image.open(_io.BytesIO(image)).convert("RGB")
+        W, H = img.size
+        draw = ImageDraw.Draw(img)
+        colors = [(255,0,0),(0,255,0),(0,128,255),(255,255,0),(255,0,255),(0,255,255),(255,128,0),(128,255,0)]
+        try:
+            font = ImageFont.load_default()
+        except Exception:
+            font = None
+        for i, s in enumerate(segments or []):
+            b = s.bbox if isinstance(s, dict) else getattr(s, "bbox", {})
+            score = s.get("score", 0) if isinstance(s, dict) else getattr(s, "score", 0)
+            if not b:
+                continue
+            x0, y0 = float(b.get("x", 0)) * W, float(b.get("y", 0)) * H
+            x1, y1 = x0 + float(b.get("w", 0)) * W, y0 + float(b.get("h", 0)) * H
+            col = colors[i % len(colors)]
+            draw.rectangle([x0, y0, x1, y1], outline=col, width=4)
+            label_txt = f"#{i} {score:.2f}"
+            draw.rectangle([x0, max(0, y0-20), x0+len(label_txt)*7, y0], fill=col)
+            draw.text((x0+2, max(0, y0-18)), label_txt, fill=(0,0,0), font=font)
+        img.save(base / "overlay.jpg", "JPEG", quality=88)
+    except Exception:
+        pass
+    return str(base)
+
 class MetaClient:
     def _post(self, path: str, body: dict) -> dict:
         r = httpx.post(f"{settings.meta_api_base}{path}", json=body, timeout=90,
@@ -114,7 +316,7 @@ class MetaClient:
                     raise
         raise last_error
 
-    def segment(self, image: bytes, height: int = None, width: int = None) -> list[Segment]:
+    def segment(self, image: bytes, height: int = None, width: int = None, prompts: list[str] | None = None) -> list[Segment]:
         """Segment an image and return normalized bounding boxes.
 
         SAM 3.1 typically returns boxes in pixels (x, y, w, h).
@@ -126,15 +328,24 @@ class MetaClient:
 
         def _do_segment():
             # SAM 3.1 segments from a text prompt; send one with the image.
-            sam_prompt = ("Detect and segment all household items in this image "
-                          "(appliances, remotes, glasses, lamps, and similar). "
-                          "Return JSON only: an array of objects "
-                          '{"label": "...", "bbox": [x, y, w, h], "score": 0.9} '
-                          "where bbox is in PIXELS (x, y, width, height). If none, return [].")
+            # With prompts (two-stage), ask for exactly that named object; else generic.
+            if prompts:
+                names = ", ".join(prompts)
+                sam_prompt = (f"Detect and segment only: {names}. "
+                              "Return JSON only: an array of objects "
+                              '{"label": "...", "bbox": [x, y, w, h], "score": 0.9} '
+                              "where bbox is in PIXELS (x, y, width, height) relative to the image. If none, return [].")
+            else:
+                sam_prompt = ("Detect and segment all household items in this image "
+                              "(appliances, remotes, glasses, lamps, and similar). "
+                              "Return JSON only: an array of objects "
+                              '{"label": "...", "bbox": [x, y, w, h], "score": 0.9} '
+                              "where bbox is in PIXELS (x, y, width, height). If none, return [].")
             content = [{"type": "input_image", "image_url": f"data:image/jpeg;base64,{_b64(image)}"},
                        {"type": "input_text", "text": sam_prompt}]
-            raw = self._post("/responses", {"model": settings.meta_segment_model,
-                                            "input": [{"role": "user", "content": content}]})
+            _req_body = {"model": settings.meta_segment_model,
+                                            "input": [{"role": "user", "content": content}]}
+            raw = self._post("/responses", _req_body)
             text = _extract_text(raw)
             if not re.search(r"\[[\s\S]*\]", text):
                 # SAM returned no boxes; fall back to the vision model to detect items.
@@ -164,20 +375,72 @@ class MetaClient:
             if m:
                 try:
                     segs = json.loads(m.group(0))
+                    _batch_xyxy = _batch_is_xyxy(segs, w, h) if w and h else False
                     for s in segs:
-                        box = s.get("bbox", s)
-                        score = s.get("score", s.get("confidence", 1.0))
-                        if w and h:
-                            bbox = {"x": float(box[0]) / w, "y": float(box[1]) / h,
-                                    "w": float(box[2]) / w, "h": float(box[3]) / h}
-                        else:
-                            bbox = box if isinstance(box, dict) else {"x": 0, "y": 0, "w": 0, "h": 0}
-                        out.append(Segment(bbox=bbox, score=score, polygon=s.get("polygon", s.get("points", None))))
+                        if not isinstance(s, dict):
+                            continue
+                        # Prefer mask-derived box; to_normalized_bbox handles all formats.
+                        if _batch_xyxy and isinstance(s.get("bbox"), (list, tuple)):
+                            s = {**s, "format": "xyxy"}
+                        bbox = to_normalized_bbox(s, w, h) if w and h else to_normalized_bbox(s.get("bbox", s), w or 1, h or 1)
+                        if bbox is None:
+                            continue
+                        score = float(s.get("score", s.get("confidence", 1.0)))
+                        lbl = s.get("label") or (prompts[0] if prompts else None)
+                        out.append(Segment(bbox=bbox, score=score, polygon=s.get("polygon", s.get("points", None)), label=lbl))
                 except (json.JSONDecodeError, IndexError, TypeError, ValueError):
+                    pass
+            if settings.baseline_debug:
+                try:
+                    _save_segment_debug(image, _req_body, raw, out)
+                except Exception:
                     pass
             return out
 
         return self._with_retry(_do_segment)
+
+
+    def list_objects(self, image: bytes) -> list[ListedObject]:
+        def _do():
+            text = self._chat(settings.meta_reason_model, [image], LIST_OBJECTS_PROMPT)
+            m = re.search(r"\[[\s\S]*\]", text)
+            if not m:
+                return []
+            try:
+                data = json.loads(m.group(0))
+            except Exception:
+                return []
+            if isinstance(data, dict):
+                data = data.get("items") or data.get("objects") or []
+            out = []
+            for d in data if isinstance(data, list) else []:
+                if not isinstance(d, dict):
+                    continue
+                name = d.get("name") or d.get("label")
+                if not name:
+                    continue
+                try:
+                    cnt = int(d.get("count", 1))
+                except Exception:
+                    cnt = 1
+                size = str(d.get("size", "medium")).lower()
+                if size not in ("small", "medium", "large"):
+                    size = "medium"
+                out.append(ListedObject(name=str(name), description=str(d.get("description", "")),
+                                        count=max(1, cnt), size=size, category=d.get("category")))
+            return out
+        return self._with_retry(_do)
+
+    def verify_crop(self, crop: bytes, name: str) -> tuple[bool, float]:
+        def _do():
+            prompt = "Named object: " + name + ". " + VERIFY_PROMPT
+            d = _parse_json(self._chat(settings.meta_reason_model, [crop], prompt))
+            return bool(d.get("matches", False)), float(d.get("confidence", 0.5))
+        return self._with_retry(_do)
+
+    def name_main_object(self, image: bytes) -> str:
+        d = _parse_json(self._chat(settings.meta_reason_model, [image], LABEL_PROMPT))
+        return str(d.get("label", "Item"))
 
     def label(self, crop: bytes) -> Label:
         def _do_label():

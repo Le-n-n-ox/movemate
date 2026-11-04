@@ -2,16 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, ScanLine, Video } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { BaselineResult, ItemOut } from "@/lib/types";
+import type { BaselineResult, ItemOut, BBox } from "@/lib/types";
 import { BBoxOverlay } from "@/components/BBoxOverlay";
 import { FilePicker } from "@/components/FilePicker";
 import { ErrorNote } from "@/components/Shell";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type Capture = { preview: string | null; name: string; ids: string[] };
 
-export function ScanCard({ roomId, suggested, onDone }: {
+export function ScanCard({ roomId, suggested, onDone, selectedId, onSelect }: {
   roomId: string; suggested: ItemOut[]; onDone: () => void;
+  selectedId?: string | null; onSelect?: (id: string | null) => void;
 }) {
   const [important, setImportant] = useState(false);
   const [busy, setBusy] = useState<"photo" | "video" | null>(null);
@@ -23,13 +26,18 @@ export function ScanCard({ roomId, suggested, onDone }: {
   // release the last preview when the card goes away
   useEffect(() => () => { if (previewRef.current) URL.revokeObjectURL(previewRef.current); }, []);
 
+  const [drawBox, setDrawBox] = useState<BBox | null>(null);
+  const [drawTarget, setDrawTarget] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const editorRef = useRef<HTMLDivElement | null>(null);
+
   async function run(kind: "photo" | "video", file: File) {
     const preview = kind === "photo" ? URL.createObjectURL(file) : null;
     setBusy(kind); setError(null);
     retry.current = () => void run(kind, file);
     try {
       const r: BaselineResult = kind === "photo"
-        ? await api.baselinePhoto(roomId, file, important ? "high" : "normal")
+        ? await api.baselinePhoto(roomId, file, important ? ("close_up" as "high") : "normal")
         : await api.baselineVideo(roomId, file);
       // success: the new preview replaces the old one, so release the old one
       if (previewRef.current) URL.revokeObjectURL(previewRef.current);
@@ -53,7 +61,7 @@ export function ScanCard({ roomId, suggested, onDone }: {
         <span className="icon-badge bg-info/15 text-info"><ScanLine className="size-5" aria-hidden /></span> Scan this room
       </h2>
       <p className="hint-box">
-        Get close: the item should fill at least a third of the photo. Open drawers fully and hold still for a second.
+        Stand 1 to 2 metres away. One surface per photo (a table, a shelf). Good light, no flash. Use Item photo for single important items.
       </p>
       <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border bg-card p-3 text-sm transition-colors has-[:checked]:border-primary has-[:checked]:bg-accent">
         <input type="checkbox" className="size-5 accent-primary" checked={important} onChange={(e) => setImportant(e.target.checked)} />
@@ -75,13 +83,48 @@ export function ScanCard({ roomId, suggested, onDone }: {
       {capture && !busy && (
         <div className="pop space-y-2">
           {capture.preview && (
-            <BBoxOverlay src={capture.preview} alt="Your photo with items marked"
-              boxes={boxes.map((i) => ({ id: i.id, label: i.label, bbox: i.bbox }))} />
+            <div
+              ref={editorRef}
+              className="relative"
+              onMouseDown={(e) => {
+                if (!drawTarget && !drawBox) return;
+                const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                const startX = (e.clientX - rect.left) / rect.width;
+                const startY = (e.clientY - rect.top) / rect.height;
+                const move = (ev: MouseEvent) => {
+                  const x = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+                  const y = Math.max(0, Math.min(1, (ev.clientY - rect.top) / rect.height));
+                  setDrawBox({ x: Math.min(startX, x), y: Math.min(startY, y), w: Math.abs(x - startX), h: Math.abs(y - startY) });
+                };
+                const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
+                window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+              }}
+            >
+              <BBoxOverlay src={capture.preview} alt="Your photo with items marked"
+                boxes={[...boxes.map((i) => ({ id: i.id, label: i.label, bbox: i.bbox })), ...(drawBox ? [{ id: "draft", label: "drawn box", bbox: drawBox }] : [])]}
+                selectedId={selectedId} onSelect={(id) => { onSelect?.(id); document.getElementById("card-" + id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
+            </div>
           )}
           {!capture.preview && <p className="text-sm text-muted-foreground">Uploaded: {capture.name}</p>}
-          {capture.ids.length === 0 && (
-            <p className="warn-box">We could not find any items. Try a closer photo with better light.</p>
+          {capture.ids.length < 3 && (
+            <p className="warn-box">We found few items. Try a closer, brighter photo, or add items by drawing boxes.</p>
           )}
+          <div className="space-y-2 rounded-xl border p-3">
+            <p className="text-sm font-semibold">Box editor</p>
+            <p className="text-sm text-muted-foreground">Drag on the photo to draw a box. Saving a box needs a backend PATCH bbox field (see note below).</p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => { setDrawTarget("new"); setDrawBox(null); }}>Draw box</Button>
+              <Button type="button" variant="outline" disabled={!drawBox} onClick={() => setDrawBox(null)}>Remove</Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Input aria-label="New item name" placeholder="Name for drawn box" value={newName} onChange={(e) => setNewName(e.target.value)} className="min-w-40 flex-1" />
+              <Button type="button" variant="outline" disabled={!newName.trim() || !drawBox} onClick={async () => {
+                try { await api.createItem(roomId, { label: newName.trim() }); toast.success("Item added. Box save needs PATCH bbox (not in contract)."); setDrawBox(null); setNewName(""); onDone(); }
+                catch (e) { toast.error((e as Error).message); }
+              }}>Add item</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">PATCH /items/{`{id}`} and POST /rooms/{`{id}`}/items have no bbox field in ItemPatch/ItemCreate, so a drawn box cannot be saved without a contract change. Proposed: add bbox: BBox | null to ItemPatch and ItemCreate.</p>
+          </div>
         </div>
       )}
     </Card>

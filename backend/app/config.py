@@ -17,6 +17,15 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:3000"
 
     mock_models: bool = True
+    baseline_debug: bool = False
+    segment_min_score: float = 0.35
+    segment_min_area: float = 0.002
+    segment_max_area: float = 0.80
+    segment_max_aspect: float = 6.0
+    segment_nms_iou_same: float = 0.5
+    segment_nms_iou_cross: float = 0.7
+    baseline_max_names: int = 12
+    baseline_max_verify: int = 12
     meta_api_base: str = ""
     meta_api_key: str = ""
     meta_segment_model: str = "sam-3.1"

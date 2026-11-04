@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export function SuggestedCard({ item, onChanged }: { item: ItemOut; onChanged: () => void }) {
+export function SuggestedCard({ item, onChanged, index, highlighted, onSelect }: { item: ItemOut; onChanged: () => void; index?: number; highlighted?: boolean; onSelect?: (id: string) => void }) {
   const [label, setLabel] = useState(item.label);
   const [qty, setQty] = useState(item.quantity);
   const [notes, setNotes] = useState(item.notes ?? "");
@@ -22,7 +22,16 @@ export function SuggestedCard({ item, onChanged }: { item: ItemOut; onChanged: (
   }
 
   return (
-    <Card className="gap-3 p-4">
+    <Card id={`card-${item.id}`} className={`gap-3 p-4 ${highlighted ? "ring-4 ring-amber-300/70" : ""}`} onClick={() => onSelect?.(item.id)}>
+      {typeof index === "number" && (
+        <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground" aria-label={`Item ${index + 1}`}>{index + 1}</span>
+      )}
+      {!item.bbox && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">No box yet</span>
+          <Button type="button" variant="outline" onClick={(e) => { e.stopPropagation(); document.getElementById("scan")?.scrollIntoView({ behavior: "smooth" }); toast("Draw a box on the photo above, then Add item."); }}>Draw box</Button>
+        </div>
+      )}
       <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)]">
         {item.crop_url && <img src={item.crop_url} alt={item.label} className="size-20 shrink-0 rounded-lg object-cover" />}
         <div className="min-w-0 space-y-1.5">
