@@ -105,16 +105,16 @@ export default function Start() {
                 type="button"
                 onClick={() => choose(id)}
                 aria-expanded={id === "guest" ? expanded === "guest" : undefined}
-                className="flex min-h-[88px] w-full items-center gap-4 rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="grid min-h-[88px] w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-4 rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[auto_minmax(0,1fr)_auto]"
               >
-                <span className={`grid size-12 shrink-0 place-items-center rounded-xl ${color}`}>
+                <span className={`col-start-1 row-start-1 grid size-12 shrink-0 place-items-center rounded-xl ${color}`}>
                   <Icon className="size-6" aria-hidden />
                 </span>
-                <span className="min-w-0 flex-1">
+                <span className="col-span-2 row-start-2 min-w-0 break-words sm:col-span-1 sm:col-start-2 sm:row-start-1">
                   <span className="block text-base font-semibold">{title}</span>
                   <span className="block text-sm text-muted-foreground">{line}</span>
                 </span>
-                <ArrowRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                <ArrowRight className="col-start-2 row-start-1 mt-1 size-5 shrink-0 justify-self-end text-muted-foreground sm:col-start-3" aria-hidden />
               </button>
 
               {id === "guest" && expanded === "guest" && (
@@ -132,7 +132,7 @@ export default function Start() {
                       onChange={(e) => setValue(e.target.value)}
                     />
                   </div>
-                  {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+                  {error && <p role="alert" className="notice-danger">{error}</p>}
                   <p className="text-xs text-muted-foreground">Your host sent it in your booking message.</p>
                   <div className="flex gap-3">
                     <Button type="button" variant="outline" className="btn-tap flex-1" onClick={() => { setExpanded(null); setError(null); setValue(""); }}>
@@ -149,7 +149,7 @@ export default function Start() {
         </div>
 
         <footer className="mt-8 space-y-3 text-center text-sm text-muted-foreground">
-          <a href="/" className="underline-offset-4 hover:underline">Back to home</a>
+          <a href="/" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Back to home</a>
           <p className="text-xs">Sign-in is coming soon. For now, choose your role.</p>
         </footer>
       </div>

@@ -12,7 +12,7 @@ export function BBoxOverlay({ src, alt, boxes }: {
           className="absolute rounded-sm border-2 border-primary"
           style={{ left: `${bbox!.x * 100}%`, top: `${bbox!.y * 100}%`, width: `${bbox!.w * 100}%`, height: `${bbox!.h * 100}%` }}
         >
-          <span className="absolute -top-0.5 left-0 max-w-full -translate-y-full truncate rounded-t bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-primary-foreground">
+          <span title={label} className="absolute -top-0.5 left-0 max-w-full -translate-y-full truncate rounded-t bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-primary-foreground">
             {label}
           </span>
         </div>

@@ -23,14 +23,14 @@ export function SuggestedCard({ item, onChanged }: { item: ItemOut; onChanged: (
 
   return (
     <Card className="gap-3 p-4">
-      <div className="flex gap-3">
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)]">
         {item.crop_url && <img src={item.crop_url} alt={item.label} className="size-20 shrink-0 rounded-lg object-cover" />}
-        <div className="flex-1 space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Label htmlFor={`l-${item.id}`}>Name</Label>
           <Input id={`l-${item.id}`} className="h-12" value={label} onChange={(e) => setLabel(e.target.value)} />
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium">How many</span>
         <Button variant="outline" size="icon" className="size-12" aria-label="Fewer" onClick={() => setQty(clamp(qty - 1))}><Minus className="size-5" /></Button>
         <span className="w-10 text-center text-lg font-semibold" aria-live="polite">{qty}</span>

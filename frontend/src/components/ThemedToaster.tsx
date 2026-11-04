@@ -3,5 +3,15 @@ import { useTheme } from "@/hooks/useTheme";
 
 export function ThemedToaster() {
   const { resolved } = useTheme();
-  return <Toaster theme={resolved} position="top-center" richColors closeButton />;
+  return (
+    <div className="contents" data-allow-overlap>
+      <Toaster
+        theme={resolved}
+        position="top-center"
+        richColors
+        closeButton
+        style={{ zIndex: "var(--z-toast)" }}
+      />
+    </div>
+  );
 }

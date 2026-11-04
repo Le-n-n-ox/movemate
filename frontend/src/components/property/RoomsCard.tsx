@@ -55,13 +55,13 @@ export function RoomsCard({
           <li key={r.id}>
             <Link
               to={withRole(`/properties/${pid}/rooms/${r.id}`)}
-              className="flex min-h-14 items-center gap-3 rounded-lg border p-3 active:bg-accent"
+              className="grid min-h-14 min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg border p-3 active:bg-accent sm:grid-cols-[auto_minmax(0,1fr)_auto]"
             >
               {r.reference_photo_url ? (
                 <img
                   src={r.reference_photo_url}
                   alt={`${r.name} reference`}
-                  className="size-12 shrink-0 rounded-md object-cover"
+                  className="col-start-1 row-start-1 size-12 shrink-0 rounded-md object-cover"
                 />
               ) : (
                 <div className="grid size-12 shrink-0 place-items-center rounded-md bg-muted">
@@ -71,8 +71,8 @@ export function RoomsCard({
                   />
                 </div>
               )}
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="truncate font-medium">{r.name}</p>
+              <div className="col-span-2 row-start-2 min-w-0 space-y-1 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+                <p className="break-words font-medium">{r.name}</p>
                 <div className="flex flex-wrap gap-1">
                   <Pill tone="brand">{r.confirmed_items} items</Pill>
                   {r.suggested_items > 0 && (
@@ -81,7 +81,7 @@ export function RoomsCard({
                 </div>
               </div>
               <ChevronRight
-                className="size-5 shrink-0 text-muted-foreground"
+                className="col-start-2 row-start-1 size-5 shrink-0 justify-self-end text-muted-foreground sm:col-start-3"
                 aria-hidden
               />
             </Link>

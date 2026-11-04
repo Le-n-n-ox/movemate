@@ -11,6 +11,14 @@ from .matching import area, dedupe
 
 
 _label_cache: dict[str, object] = {}
+_BACKGROUND_LABELS = {
+    "background", "surface", "wall", "floor", "ceiling", "door", "window",
+    "carpet", "tile", "countertop", "counter top", "counter",
+}
+_BACKGROUND_CATEGORIES = {"background", "structure", "surface", "architectural"}
+_ITEM_LABEL_EXCEPTIONS = {"wall clock", "wall art", "floor lamp", "door mat"}
+_MIN_SEGMENT_SCORE = 0.15
+_MAX_SEGMENT_AREA = 0.45
 
 
 def _crop_hash(crop: bytes) -> str:
@@ -24,13 +32,30 @@ def _cached_label(client, crop: bytes):
     return _label_cache[key]
 
 
+def _is_background(label: str, category: str | None) -> bool:
+    normalized_label = " ".join(label.casefold().replace("-", " ").split())
+    normalized_category = (category or "").strip().casefold()
+    if normalized_label in _ITEM_LABEL_EXCEPTIONS:
+        return False
+    return (
+        normalized_category in _BACKGROUND_CATEGORIES
+        or normalized_label in _BACKGROUND_LABELS
+        or any(normalized_label.endswith(f" {term}") for term in _BACKGROUND_LABELS)
+    )
+
+
 def _objects_in_image(client, img: bytes, frame_no: int) -> list[dict]:
-    segs = [s for s in client.segment(img) if area(s.bbox) > 0.002]
+    segs = [
+        s for s in client.segment(img)
+        if _MIN_SEGMENT_SCORE <= s.score and 0.002 < area(s.bbox) <= _MAX_SEGMENT_AREA
+    ]
     segs = sorted(segs, key=lambda s: s.score, reverse=True)[: settings.max_segments_per_image]
     objs = []
     for s in segs:
         crop = imaging.crop_bbox(img, s.bbox)
         lab = _cached_label(client, crop)
+        if _is_background(lab.label, lab.category):
+            continue
         objs.append({"label": lab.label, "category": lab.category, "conf": lab.confidence,
                      "bbox": s.bbox, "frame": frame_no, "crop": crop, "image": img})
     return objs
@@ -41,7 +66,7 @@ def _to_items(db: Session, room: Room, capture: Capture, objs: list[dict], sourc
     for o in objs:
         crop_rel = storage.save_bytes(f"crops/{room.id}", o["crop"])
         item = Item(room_id=room.id, capture_id=capture.id, label=o["label"], category=o["category"],
-                    priority=priority, bbox=o["bbox"], crop_path=crop_rel,
+                    quantity=1, priority=priority, bbox=o["bbox"], crop_path=crop_rel,
                     source_image_path=source_rel_for(o), status="suggested")
         db.add(item)
         items.append(item)

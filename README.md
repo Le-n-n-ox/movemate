@@ -31,6 +31,10 @@ Not built (later): real login, bookings, notifications, stock ledger, maintenanc
 
 The backend tests and Docker backend startup have been verified. Live-provider behavior and real-video audit accuracy still need verification with provider credentials and reviewed sample videos. Start backend checks with `docker compose run --rm backend pytest -q`.
 
+## Pre-merge checklist
+
+- [ ] Run the responsive layout audit against the running app with seeded data: `cd frontend && npm run test:layout`. It checks every app route at eight viewport widths, both color themes, 200% text size, and long property/room names. Resolve all findings before merging.
+
 ## Layout
 
 ```

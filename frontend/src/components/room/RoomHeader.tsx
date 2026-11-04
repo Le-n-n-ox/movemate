@@ -26,7 +26,7 @@ export function RoomHeader({ room, onChanged }: { room: RoomOut; onChanged: () =
                     No room photo yet. One wide photo helps your cleaner see how it should look.
                 </p>
             )}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <FilePicker
                     kind="image" busy={busy} icon={<Camera className="size-5" />}
                     label={room.reference_photo_url ? "Replace photo" : "Add room photo"} onFile={upload}

@@ -15,7 +15,7 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <a
             href="#main"
-            className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:inline-flex focus:min-h-12 focus:items-center focus:rounded-xl focus:bg-primary focus:px-4 focus:text-primary-foreground"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-sticky focus:inline-flex focus:min-h-12 focus:items-center focus:rounded-xl focus:bg-primary focus:px-4 focus:text-primary-foreground"
           >
             Skip to content
           </a>

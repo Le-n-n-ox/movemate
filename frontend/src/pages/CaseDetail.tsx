@@ -36,14 +36,14 @@ export default function CaseDetail() {
             </div>
             <div className="flex gap-3 mt-3">
               {c.reference_crop_url && <img src={c.reference_crop_url} alt={`Reference for ${c.item_label}`} className="size-24 shrink-0 rounded-lg object-cover" />}
-              <div className="flex-1 space-y-1">
+              <dl className="min-w-0 flex-1 space-y-1">
                 {c.room_name && (
-                  <div className="text-sm"><dt className="text-muted-foreground">Room</dt><dd className="text-foreground">{c.room_name}</dd></div>
+                  <div className="text-sm"><dt className="text-muted-foreground">Room</dt><dd className="break-words text-foreground">{c.room_name}</dd></div>
                 )}
                 {c.expected_location && (
-                  <div className="text-sm"><dt className="text-muted-foreground">Expected place</dt><dd className="text-foreground">{c.expected_location}</dd></div>
+                  <div className="text-sm"><dt className="text-muted-foreground">Expected place</dt><dd className="break-words text-foreground">{c.expected_location}</dd></div>
                 )}
-              </div>
+              </dl>
             </div>
             {c.ai_suggestion && (
               <div className="hint-box space-y-2 mt-3">

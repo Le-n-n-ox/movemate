@@ -46,7 +46,7 @@ export function ScanCard({ roomId, suggested, onDone }: {
         <input type="checkbox" className="size-5 accent-primary" checked={important} onChange={(e) => setImportant(e.target.checked)} />
         This is an important item (close-up)
       </label>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FilePicker kind="image" label="Item photo" icon={<Camera className="size-5" />}
           busy={busy === "photo"} busyLabel="Finding items..." disabled={!!busy} onFile={(f) => run("photo", f)} />
         <FilePicker kind="video" label="10-second sweep" icon={<Video className="size-5" />}

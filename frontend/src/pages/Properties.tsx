@@ -15,11 +15,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function Properties() {
   const nav = useNavigate();
   const { role, withRole } = useRole();
-  if (role === "cleaner") return <Navigate to="/cleaner?role=cleaner" replace />;
   const list = useAsync(api.listProperties);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ name: "", address: "", property_type: "", capacity: "" });
+  // Role can change via the `?role=` query param, so this redirect must come
+  // after every hook call to keep hook order stable across renders.
+  if (role === "cleaner") return <Navigate to="/cleaner?role=cleaner" replace />;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
 
   async function create(e: React.FormEvent) {
@@ -54,8 +56,7 @@ export default function Properties() {
     <Shell title="Properties">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl font-bold tracking-tight">Properties</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {total} {total === 1 ? "property" : "properties"}
             {needsAttention > 0 && <>, <span className="font-medium text-info">{needsAttention} need{needsAttention === 1 ? "s" : ""} attention</span></>}
           </p>
@@ -72,7 +73,7 @@ export default function Properties() {
                   <div className="space-y-1.5"><Label htmlFor="type">Type</Label><Input id="type" value={f.property_type} onChange={set("property_type")} placeholder="Apartment" className="h-12" /></div>
                   <div className="space-y-1.5"><Label htmlFor="cap">Guests</Label><Input id="cap" type="number" inputMode="numeric" min={1} value={f.capacity} onChange={set("capacity")} className="h-12" /></div>
                 </div>
-                <Button type="submit" disabled={busy} className="btn-tap w-full">Create property</Button>
+                <Button type="submit" disabled={busy} className="btn-tap w-full">{busy ? "Creating..." : "Create property"}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -86,16 +87,21 @@ export default function Properties() {
       )}
       {list.error && <ErrorNote message={list.error} onRetry={() => list.refresh()} />}
       {!list.loading && !list.error && props.length === 0 && (
-        <EmptyState icon={<Building2 className="size-8" />} title="No properties yet" hint="Add your first home to get started." />
+        <EmptyState
+          icon={<Building2 className="size-8" />}
+          title="No properties yet"
+          hint="Add your first home to get started."
+          action={role === "host" ? <Button className="btn-tap" onClick={() => setOpen(true)}><Plus className="size-4" /> Add property</Button> : undefined}
+        />
       )}
       {!list.loading && !list.error && props.length > 0 && (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3 auto-rows-[220px]">
+        <div className="mt-8 grid items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
           {props.map((p: any, i: number) => {
             const feature = i === 0 && (p.open_discrepancies > 0);
             return (
-              <Link key={p.id} to={withRole(`/properties/${p.id}`)} className={`group block ${feature ? "md:col-span-2" : ""}`}>
-                <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-md">
-                  <div className={`relative bg-muted ${feature ? "h-40" : "h-28"}`}>
+              <Link key={p.id} to={withRole(`/properties/${p.id}`)} className={`group block min-w-0 ${feature ? "md:col-span-2" : ""}`}>
+                <div className="flex min-h-56 min-w-0 flex-col rounded-2xl border bg-card transition-shadow hover:shadow-md">
+                  <div className={`relative shrink-0 overflow-hidden rounded-t-2xl bg-muted ${feature ? "h-40" : "h-28"}`}>
                     {p.cover_photo ? (
                       <img src={p.cover_photo} alt={p.name} className="h-full w-full object-cover" />
                     ) : (
@@ -107,10 +113,10 @@ export default function Properties() {
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-1 flex-col justify-between p-4">
-                    <div>
-                      <p className="font-display text-lg font-semibold">{p.name}</p>
-                      {p.address && <p className="text-sm text-muted-foreground truncate">{p.address}</p>}
+                  <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
+                    <div className="min-w-0">
+                      <p className="break-words font-display text-lg font-semibold">{p.name}</p>
+                      {p.address && <p className="break-words text-sm text-muted-foreground">{p.address}</p>}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
                       {p.property_type && <span className="rounded-full bg-secondary px-2 py-0.5">{p.property_type}</span>}

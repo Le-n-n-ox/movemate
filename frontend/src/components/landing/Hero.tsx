@@ -15,7 +15,7 @@ const NAV = [
 
 export function LandingHeader({ onOpenApp }: { onOpenApp: () => void }) {
   return (
-    <header className="glass sticky z-40" style={{ top: "env(safe-area-inset-top, 0px)" }}>
+    <header className="glass" data-allow-overlap style={{ top: "env(safe-area-inset-top, 0px)" }}>
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-2">
         <a href="#top" className="flex min-h-12 items-center gap-2 font-display text-lg font-bold tracking-tight">
           <img src="/icon.svg" alt="" className="size-8 rounded-lg" /> MoveMate
@@ -48,8 +48,8 @@ const ROWS = [
 
 function PhoneMock() {
   return (
-    <div className="relative mx-auto w-full max-w-[19rem]" aria-hidden>
-      <div className="rounded-[2.5rem] border-2 border-border bg-background p-4 shadow-lg">
+    <div className="pointer-events-none min-w-0 w-full" aria-hidden="true">
+      <div className="mx-auto w-full max-w-[19rem] rounded-[2.5rem] border-2 border-border bg-background p-4 shadow-lg">
         <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-muted" />
         <div className="space-y-3">
           <div className="rounded-2xl bg-accent p-4 text-center">
@@ -80,11 +80,13 @@ function PhoneMock() {
           </div>
         </div>
       </div>
-      <div className="absolute -left-4 top-24 hidden rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-md sm:block">
-        Cleaner reported this
-      </div>
-      <div className="absolute -right-4 bottom-20 hidden rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-md sm:block">
-        Waiting for your review
+      <div className="pointer-events-none mt-4 flex flex-wrap justify-center gap-2">
+        <span className="rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-md">
+          Cleaner reported this
+        </span>
+        <span className="rounded-xl border bg-card px-3 py-2 text-xs font-medium shadow-md">
+          Waiting for your review
+        </span>
       </div>
     </div>
   );
@@ -99,9 +101,9 @@ const ROLES = [
 export function Hero({ onOpenApp }: { onOpenApp: () => void }) {
   return (
     <MotionConfig reducedMotion="user">
-      <section id="top" className="relative overflow-hidden">
-        <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-14 lg:grid-cols-[1.1fr_0.9fr] lg:pt-24 lg:pb-24">
-          <div className="space-y-7">
+      <section id="top">
+        <div className="mx-auto grid max-w-6xl min-w-0 grid-cols-1 items-center gap-12 px-4 pt-16 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:pt-24 lg:pb-24">
+          <div className="min-w-0 space-y-7">
             <motion.h1
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
               className="font-display text-[clamp(2.5rem,5vw,4rem)] font-extrabold leading-[1.05] tracking-tight text-balance"
@@ -117,10 +119,10 @@ export function Hero({ onOpenApp }: { onOpenApp: () => void }) {
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="flex max-w-md flex-col gap-3 sm:flex-row"
+              className="flex max-w-md flex-wrap gap-3"
             >
-              <ActionButton onClick={onOpenApp}>Open the app</ActionButton>
-              <HashButton href="#how" variant="outline">See how it works</HashButton>
+              <ActionButton onClick={onOpenApp} className="w-auto shrink-0">Open the app</ActionButton>
+              <HashButton href="#how" variant="outline" className="w-auto shrink-0">See how it works</HashButton>
             </motion.div>
             <motion.ul
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}
@@ -131,7 +133,7 @@ export function Hero({ onOpenApp }: { onOpenApp: () => void }) {
               ))}
             </motion.ul>
           </div>
-          <PhoneMock />
+          <div className="min-w-0"><PhoneMock /></div>
         </div>
       </section>
     </MotionConfig>

@@ -51,11 +51,11 @@ export function InspectionItemCard({ item, role, actor, readOnly, onChanged }: {
                     ? <img src={item.reference_crop_url} alt={`Reference for ${item.label}`} className="size-20 shrink-0 rounded-lg object-cover" />
                     : <div className="size-20 shrink-0 rounded-lg bg-muted" aria-hidden />}
                 <div className="min-w-0 flex-1 space-y-1">
-                    <p className="font-semibold leading-tight">{item.label}</p>
+                    <p className="break-words font-semibold leading-tight">{item.label}</p>
                     <p className="text-sm text-muted-foreground">Expected: {item.expected_quantity}{item.min_quantity != null && ` (min ${item.min_quantity})`}</p>
-                    {item.location_path && <p className="text-xs text-muted-foreground">Usually: {item.location_path}</p>}
+                    {item.location_path && <p className="break-words text-xs text-muted-foreground">Usually: {item.location_path}</p>}
                     {item.alternate_locations.length > 0 && (
-                        <p className="text-xs text-muted-foreground">Also OK: {item.alternate_locations.join(", ")}</p>
+                        <p className="break-words text-xs text-muted-foreground">Also OK: {item.alternate_locations.join(", ")}</p>
                     )}
                 </div>
             </div>

@@ -45,3 +45,5 @@ screenshots/
 frontend/playwright-report/
 frontend/test-results/
 frontend/tests/e2e/screenshots/
+frontend/e2e/failures/
+frontend/e2e/screenshots/

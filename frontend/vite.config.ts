@@ -9,5 +9,16 @@ export default defineConfig({
     include: ["react-is"],
   },
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
-  server: { host: true, port: 3000 },
+  server: {
+    host: true,
+    port: 3000,
+    // Dev-only proxy so the browser talks to the backend same-origin.
+    // This sidesteps CORS entirely when running Vite outside Docker.
+    proxy: {
+      "/api": {
+        target: process.env.VITE_DEV_API_TARGET || "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+    },
+  },
 });

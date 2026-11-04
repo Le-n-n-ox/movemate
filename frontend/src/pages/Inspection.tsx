@@ -10,6 +10,8 @@ import { copyText, kindLabel, statusLabel } from "@/lib/labels";
 import { ErrorNote, Pill, RoleBar, Shell } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RoomSection } from "@/components/inspection/RoomSection";
 import { FinishCard } from "@/components/inspection/FinishCard";
@@ -40,10 +42,27 @@ export default function Inspection() {
 
   if (role === "cleaner" && !actor) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="page flex min-h-screen items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-4">
-          <h1 className="text-2xl font-bold">What's your name?</h1>
-          <input className="w-full h-12 rounded-xl border px-3" placeholder="Your name" id="cleaner-name" autoFocus />
+          <h1 className="font-display text-2xl font-extrabold tracking-tight">What's your name?</h1>
+          <p className="text-sm text-muted-foreground">
+            Your name goes on everything you confirm, so the host knows who checked what.
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="cleaner-name" className="sr-only">Your name</Label>
+            <Input
+              id="cleaner-name"
+              placeholder="Your name"
+              autoFocus
+              autoComplete="name"
+              className="h-12"
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                const v = (e.target as HTMLInputElement).value.trim();
+                if (v) setActor(v);
+              }}
+            />
+          </div>
           <Button className="btn-tap w-full" onClick={() => {
             const v = (document.getElementById("cleaner-name") as HTMLInputElement).value.trim();
             if (v) setActor(v);

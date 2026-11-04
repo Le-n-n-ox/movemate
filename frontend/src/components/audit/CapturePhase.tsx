@@ -114,7 +114,7 @@ export function CapturePhase({ auditId, rooms, uploaded, failedStage, onChanged 
           return (
             <Card key={r.id} className={`gap-3 p-4 ${isReady ? "border-ok/40" : ""}`}>
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold">{r.name}</p>
+                <p className="min-w-0 break-words font-semibold">{r.name}</p>
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${isReady ? "bg-ok/15 text-ok" : "bg-muted text-muted-foreground"}`}>
                   {isBusy ? (busyLabel || "Uploading…") : isReady ? "Ready" : "Not started"}
                 </span>
@@ -151,7 +151,7 @@ export function CapturePhase({ auditId, rooms, uploaded, failedStage, onChanged 
         })}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 px-4 py-3 backdrop-blur" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <div className="fixed bottom-0 left-0 right-0 z-sticky border-t bg-background/95 px-4 py-3 backdrop-blur" data-allow-overlap style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <div className="mx-auto max-w-[640px] space-y-1">
           <Button className="btn-tap w-full" disabled={!ready || !!busyRoom} onClick={async () => {
             try { await api.runAudit(auditId); onChanged(); } catch (e) { toast.error((e as Error).message); }

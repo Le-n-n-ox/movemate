@@ -46,7 +46,7 @@ export function ShareLinkSheet({
         <div className="space-y-4 mt-4">
           <Input readOnly value={url} className="text-xs" />
           {local && (
-            <div className="rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm p-3">
+            <div className="notice-warn">
               This link only works on this computer. To open it on a phone, run the app with your computer's network address (see README).
             </div>
           )}

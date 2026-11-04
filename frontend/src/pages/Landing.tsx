@@ -8,7 +8,7 @@ export default function Landing() {
   const nav = useNavigate();
   const openApp = () => nav("/start");
   return (
-    <div id="main" className="overflow-x-clip">
+    <div id="main">
       <LandingHeader onOpenApp={openApp} />
       <main>
         <Hero onOpenApp={openApp} />

@@ -44,8 +44,8 @@ export default function Cases() {
               <Card className={`row-link ${c.status === "resolved" ? "card-dim" : ""}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold truncate">{c.item_label}</p>
-                    <p className="text-sm text-muted-foreground">{caseTypeLabel[c.type]}{c.room_name ? ` · ${c.room_name}` : ""}</p>
+                    <p className="break-words font-semibold">{c.item_label}</p>
+                    <p className="break-words text-sm text-muted-foreground">{caseTypeLabel[c.type]}{c.room_name ? ` · ${c.room_name}` : ""}</p>
                   </div>
                   <ChevronRight className="mt-1 size-5 shrink-0 text-muted-foreground" aria-hidden />
                 </div>

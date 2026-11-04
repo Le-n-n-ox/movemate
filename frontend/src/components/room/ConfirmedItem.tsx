@@ -13,13 +13,15 @@ export function ConfirmedItem({ item, places, actor, onChanged }: {
   const [open, setOpen] = useState(false);
   return (
     <Card className="gap-0 p-3">
-      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-h-14 w-full items-center gap-3 text-left">
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="grid min-h-14 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 text-left sm:grid-cols-[auto_minmax(0,1fr)_auto]">
         {item.crop_url
-          ? <img src={item.crop_url} alt={item.label} className="size-12 shrink-0 rounded-md object-cover" />
-          : <div className="size-12 shrink-0 rounded-md bg-muted" aria-hidden />}
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{item.label} <span className="text-muted-foreground">×{item.quantity}</span></p>
-          <p className="truncate text-xs text-muted-foreground">{item.location_path ?? "Anywhere in the room"}</p>
+          ? <img src={item.crop_url} alt={item.label} className="col-start-1 row-start-1 size-12 shrink-0 rounded-md object-cover" />
+          : <div className="col-start-1 row-start-1 size-12 shrink-0 rounded-md bg-muted" aria-hidden />}
+        <div className="col-span-2 row-start-2 min-w-0 break-words sm:col-span-1 sm:col-start-2 sm:row-start-1">
+          <p className="break-words font-medium" title={item.label}>{item.label} <span className="text-muted-foreground">×{item.quantity}</span></p>
+          <p className="break-words text-xs text-muted-foreground">
+            {item.location_path ?? "Anywhere in the room"}
+          </p>
           <div className="mt-1 flex flex-wrap gap-1">
             <Pill tone={conditionTone[item.condition]}>{item.condition.replace("_", " ")}</Pill>
             {item.kind !== "movable" && <Pill>{item.kind}</Pill>}
@@ -27,7 +29,7 @@ export function ConfirmedItem({ item, places, actor, onChanged }: {
             {item.availability === "staff_only" && <Pill tone="info">Staff only</Pill>}
           </div>
         </div>
-        <ChevronDown className={cn("size-5 shrink-0 transition-transform", open && "rotate-180")} aria-hidden />
+        <ChevronDown className={cn("col-start-2 row-start-1 mt-1 size-5 shrink-0 justify-self-end transition-transform sm:col-start-3", open && "rotate-180")} aria-hidden />
       </button>
       {open && <ItemDetails item={item} places={places} actor={actor} onChanged={onChanged} />}
     </Card>

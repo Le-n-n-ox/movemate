@@ -16,7 +16,7 @@ async function json<T>(page: any, path: string): Promise<T> {
 
 test("screenshot every screen at 375 px", async ({ page }) => {
   await page.goto("/");
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("domcontentloaded");
 
   const { property_id } = await seed(page);
 
@@ -53,7 +53,21 @@ test("screenshot every screen at 375 px", async ({ page }) => {
 
   for (const screen of screens) {
     await page.goto(screen.path);
-    await page.waitForLoadState("networkidle");
+    // `networkidle` never settles on the Audit route (it polls every 2s), so
+    // wait for the document and a short settle instead.
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(1200);
+    // Scroll the whole page so scroll-reveal sections animate in before the
+    // full-page capture, otherwise they are captured at opacity 0.
+    await page.evaluate(async () => {
+      const step = window.innerHeight;
+      for (let y = 0; y < document.body.scrollHeight; y += step) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 320));
+      }
+      window.scrollTo(0, 0);
+    });
+    await page.waitForTimeout(900);
     await page.screenshot({ path: `tests/e2e/screenshots/${screen.name}.png`, fullPage: true });
   }
 });

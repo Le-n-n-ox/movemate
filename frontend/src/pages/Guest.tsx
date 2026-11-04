@@ -80,7 +80,7 @@ export default function Guest() {
     <main className="page text-lg max-w-[480px] mx-auto">
       <header className="space-y-1 mb-6">
         <p className="flex items-center gap-2 text-sm font-medium text-primary"><Home className="size-4" aria-hidden /> Welcome</p>
-        <h1 className="text-4xl font-extrabold tracking-tight">{g.property_name}</h1>
+        <h1 className="min-w-0 break-words text-4xl font-extrabold tracking-tight">{g.property_name}</h1>
         <p className="text-base text-muted-foreground">We are glad you are here.</p>
       </header>
 
@@ -98,12 +98,12 @@ export default function Guest() {
       </div>
 
       {g.house_rules && (
-        <section className="rounded-xl border bg-card mb-6 overflow-hidden" aria-label="House rules">
+        <section className="mb-6 rounded-xl border bg-card" aria-label="House rules">
           <button type="button" onClick={toggleRules} className="w-full flex items-center justify-between p-4 text-left">
             <span className="flex items-center gap-2 font-semibold"><ScrollText className="size-5" aria-hidden /> Good to know</span>
             <ChevronDown className={`size-5 transition-transform ${rulesOpen ? "rotate-180" : ""}`} aria-hidden />
           </button>
-          {rulesOpen && <p className="whitespace-pre-wrap text-base px-4 pb-4 text-foreground">{g.house_rules}</p>}
+          {rulesOpen && <p className="break-words whitespace-pre-wrap px-4 pb-4 text-base text-foreground">{g.house_rules}</p>}
         </section>
       )}
 
@@ -130,7 +130,7 @@ export default function Guest() {
         <section className="mb-6" aria-label="What we can help with">
           <h2 className="text-lg font-semibold mb-2">What we can help with</h2>
           {filteredLabels.length > 8 && (
-            <input type="search" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 rounded-xl border px-3 mb-2" />
+            <input type="search" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} className="mb-2 h-12 w-full rounded-xl border px-3" />
           )}
           <div className="flex flex-wrap gap-2">
             {(search.trim() ? searched : visibleLabels).map((l) => (
@@ -149,8 +149,8 @@ export default function Guest() {
         <input ref={videoRef} type="file" accept="image/*,video/*" capture="environment" className="sr-only" />
         <Button variant="outline" className="btn-tap w-full" onClick={() => videoRef.current?.click()}>Choose a photo or video</Button>
         <Button className="btn-tap w-full" disabled={videoBusy} onClick={uploadCheckoutVideo}>{videoBusy ? "Uploading..." : "Upload record"}</Button>
-        {videoErr && <p role="alert" className="text-sm text-red-700">{videoErr}</p>}
-        {videoMsg && <p role="status" className="text-sm text-green-700">{videoMsg}</p>}
+        {videoErr && <p role="alert" className="text-sm text-danger">{videoErr}</p>}
+        {videoMsg && <p role="status" className="text-sm text-ok">{videoMsg}</p>}
       </section>
 
       <footer className="text-center text-xs text-muted-foreground space-y-1">

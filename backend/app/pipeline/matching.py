@@ -30,14 +30,21 @@ def rank_candidates(labels: list[str], target: str, top: int = 5) -> list[int]:
 
 
 def dedupe(objs: list[dict]) -> list[dict]:
-    """objs: {label, bbox, frame, crop(bytes), conf, category}. Same label + overlapping box = same object.
-    Returns best crop per object with quantity = most same-label objects seen in any single frame."""
+    """Keep distinct same-label objects while merging detections across frames."""
     groups: list[list[dict]] = []
     for o in objs:
+        label = o["label"].strip().casefold()
+        candidates = []
         for g in groups:
-            if g[0]["label"].lower() == o["label"].lower() and iou(g[0]["bbox"], o["bbox"]) > 0.3:
-                g.append(o)
-                break
+            if any(member["label"].strip().casefold() != label for member in g):
+                continue
+            if any(member["frame"] == o["frame"] for member in g):
+                continue
+            overlap = max(iou(member["bbox"], o["bbox"]) for member in g)
+            if overlap > 0.15:
+                candidates.append((overlap, g))
+        if candidates:
+            max(candidates, key=lambda match: match[0])[1].append(o)
         else:
             groups.append([o])
     out = []

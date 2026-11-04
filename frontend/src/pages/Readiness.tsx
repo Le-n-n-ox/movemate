@@ -41,7 +41,7 @@ export default function Readiness() {
       {q.error && <ErrorNote message={q.error} onRetry={() => q.refresh()} />}
       {r && (
         <>
-          <p className="text-lg font-semibold">{r.property_name}</p>
+          <p className="break-words text-lg font-semibold">{r.property_name}</p>
           <StatusHero status={r.status} summary={r.summary} />
 
           <Card className="gap-2 p-4 text-sm">
@@ -75,7 +75,7 @@ export default function Readiness() {
             <h2 className="text-lg font-semibold">Rooms</h2>
             {r.rooms.map((room) => (
               <Card key={room.room_name} className="gap-2 p-4">
-                <p className="font-semibold">{room.room_name}</p>
+                <p className="break-words font-semibold">{room.room_name}</p>
                 <div className="flex flex-wrap gap-2">
                   <Pill tone={tone(room.cleaning_status)}>Cleaning: {part(room.cleaning_status)}</Pill>
                   <Pill tone={tone(room.inventory_status)}>Items: {part(room.inventory_status)}</Pill>

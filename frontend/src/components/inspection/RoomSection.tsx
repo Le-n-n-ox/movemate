@@ -22,7 +22,7 @@ export function RoomSection({ room, role, actor, readOnly, onChanged }: {
   return (
     <details open className="rounded-xl border bg-card">
       <summary className="flex min-h-14 cursor-pointer flex-wrap items-center gap-2 p-4">
-        <span className="mr-auto text-lg font-semibold">{room.room_name}</span>
+        <span className="mr-auto min-w-0 break-words text-lg font-semibold">{room.room_name}</span>
         <Pill tone={partTone[room.cleaning_status]}>Cleaning: {partLabel[room.cleaning_status]}</Pill>
         <Pill tone={partTone[room.inventory_status]}>Items: {partLabel[room.inventory_status]}</Pill>
       </summary>

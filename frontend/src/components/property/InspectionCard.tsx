@@ -16,6 +16,12 @@ export function InspectionCard({ pid, recent, actor, setActor, hasRooms }: {
 }) {
   const nav = useNavigate();
   const { withRole } = useRole();
+  // Still-waiting work first, then newest first within each group.
+  const ordered = [...recent].sort(
+    (a, b) =>
+      Number(b.status === "in_progress") - Number(a.status === "in_progress") ||
+      b.created_at.localeCompare(a.created_at),
+  );
   const [kind, setKind] = useState<InspectionKind>("after_checkout");
   const [ref, setRef] = useState("");
   const [busy, setBusy] = useState(false);
@@ -40,9 +46,13 @@ export function InspectionCard({ pid, recent, actor, setActor, hasRooms }: {
       <Input aria-label="Reservation reference" placeholder="Reservation reference (optional)" className="h-12" value={ref} onChange={(e) => setRef(e.target.value)} />
       <Button className="btn-tap" onClick={start} disabled={busy || !hasRooms}>{busy ? "Starting..." : "Start inspection"}</Button>
       {!hasRooms && <p className="text-sm text-muted-foreground">Add a room first.</p>}
-      {recent.length > 0 && (
+      {ordered.length > 0 && (
+        <>
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Recent inspections
+        </p>
         <ul className="space-y-2 border-t pt-3">
-          {recent.slice(0, 5).map((i) => (
+          {ordered.slice(0, 5).map((i) => (
             <li key={i.id}>
               <Link to={withRole(`/inspection/${i.id}`)} className="flex min-h-12 items-center justify-between gap-2 rounded-lg p-2 active:bg-accent">
                 <span className="text-sm">
@@ -54,6 +64,7 @@ export function InspectionCard({ pid, recent, actor, setActor, hasRooms }: {
             </li>
           ))}
         </ul>
+        </>
       )}
     </Card>
   );

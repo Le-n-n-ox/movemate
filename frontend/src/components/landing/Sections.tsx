@@ -24,7 +24,7 @@ export function Facts() {
     <section className="border-y bg-secondary/50" aria-label="At a glance">
       <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-y-8 px-4 py-10 md:grid-cols-4 md:divide-x">
         {FACTS.map(([n, label]) => (
-          <div key={label} className="flex flex-col-reverse px-4 text-center">
+          <div key={label} className="flex flex-col-reverse gap-1 px-4 text-center">
             <dt className="text-sm text-muted-foreground">{label}</dt>
             <dd className="font-display text-5xl font-extrabold text-primary"><AnimatedNumber value={n} /></dd>
           </div>
@@ -354,16 +354,43 @@ export function Boundary() {
 
 /* ---------- final call and footer ---------- */
 
+const CTA_POINTS: { icon: LucideIcon; title: string; body: string }[] = [
+  { icon: ShieldCheck, title: "Nothing is lost", body: "Every check, note and decision keeps a trail you can look back on." },
+  { icon: Clock, title: "One verdict", body: "Ready, ready with exceptions, or not ready - before the guest arrives." },
+  { icon: Users, title: "Everyone sees the same", body: "Host, cleaner and guest work off one list, not three versions of it." },
+];
+
 export function FinalCta({ onOpenApp }: { onOpenApp: () => void }) {
   return (
-    <section className="hero-glow mx-auto max-w-3xl space-y-4 px-4 pb-20 pt-4 text-center">
-      <Reveal>
-        <h2 className={H2}>Try it with demo data</h2>
-        <p className="mt-2 text-muted-foreground">Demo mode uses sample answers, so you can explore every screen.</p>
-        <div className="mx-auto mt-6 max-w-xs">
-          <ActionButton onClick={onOpenApp}>Open the app</ActionButton>
-        </div>
-      </Reveal>
+    <section className="hero-glow border-t bg-card/40">
+      <div className="mx-auto max-w-4xl space-y-8 px-4 py-20 text-center">
+        <Reveal>
+          <h2 className={H2}>Try it with demo data</h2>
+          <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+            Demo mode uses sample answers, so you can explore every screen before
+            pointing it at a real home.
+          </p>
+        </Reveal>
+        <Reveal delay={0.1}>
+          <ul className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-3">
+            {CTA_POINTS.map(({ icon: Icon, title, body }) => (
+              <li key={title} className="rounded-2xl border bg-card p-5 text-left shadow-sm">
+                <span className="icon-badge mb-3"><Icon className="size-5" aria-hidden /></span>
+                <p className="font-semibold">{title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{body}</p>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+        <Reveal delay={0.2}>
+          <div className="mx-auto max-w-xs">
+            <ActionButton onClick={onOpenApp} className="btn-tap">Open the app</ActionButton>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            No sign-up. Nothing to configure.
+          </p>
+        </Reveal>
+      </div>
     </section>
   );
 }

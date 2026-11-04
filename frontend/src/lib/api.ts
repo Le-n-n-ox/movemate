@@ -1,6 +1,10 @@
 import type * as T from "./types";
 
-export const API_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+// Docker sets VITE_API_URL explicitly (http://localhost:8000). When running
+// Vite outside Docker we fall back to a same-origin relative URL so the dev
+// server proxy in vite.config.ts handles the request (no CORS involved).
+export const API_URL: string =
+  import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "" : "http://localhost:8000");
 
 export class ApiError extends Error {
   status: number;

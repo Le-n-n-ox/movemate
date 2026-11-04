@@ -73,16 +73,16 @@ export function RolePicker({ open, onClose }: { open: boolean; onClose: () => vo
               {OPTIONS.map(({ id, icon: Icon, name, text }) => (
                 <button
                   key={id} type="button" onClick={() => choose(id)}
-                  className="flex min-h-16 w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors hover:bg-accent active:scale-[0.99]"
+                  className="grid min-h-16 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 rounded-xl border p-3 text-left transition-colors hover:bg-accent active:scale-[0.99] sm:grid-cols-[auto_minmax(0,1fr)_auto]"
                 >
-                  <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
+                  <span className="col-start-1 row-start-1 grid size-11 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
                     <Icon className="size-5" aria-hidden />
                   </span>
-                  <span className="min-w-0 flex-1">
+                  <span className="col-span-2 row-start-2 min-w-0 break-words sm:col-span-1 sm:col-start-2 sm:row-start-1">
                     <span className="block font-semibold">{name}</span>
                     <span className="block text-sm text-muted-foreground">{text}</span>
                   </span>
-                  <ArrowRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                  <ArrowRight className="col-start-2 row-start-1 mt-1 size-5 shrink-0 justify-self-end text-muted-foreground sm:col-start-3" aria-hidden />
                 </button>
               ))}
             </div>

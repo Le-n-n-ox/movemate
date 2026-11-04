@@ -83,13 +83,13 @@ function CleanerInner() {
             <Input id="cleaner-link" className="h-12 flex-1" placeholder="https://.../properties/... or /inspection/..." value={link} onChange={(e) => setLink(e.target.value)} />
             <Button type="submit" className="btn-tap">Open</Button>
           </div>
-          {linkErr && <p role="alert" className="text-sm text-red-700">{linkErr}</p>}
+          {linkErr && <p role="alert" className="text-sm text-danger">{linkErr}</p>}
         </form>
 
         {loading && <div className="mt-6 space-y-3">{[0,1,2].map(i => <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted" />)}</div>}
 
         {error && (
-          <div className="mt-6 rounded-lg bg-red-50 p-3 text-sm text-red-700 space-y-2">
+          <div className="notice-danger mt-6 space-y-2">
             <p role="alert">We can't reach the server.</p>
             <Button variant="outline" size="sm" onClick={() => window.location.reload()}>Retry</Button>
             {import.meta.env.DEV && (
@@ -112,7 +112,7 @@ function CleanerInner() {
             {rows.map((r) => (
               <li key={r.inspection.id} className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-4">
                 <div className="min-w-0">
-                  <p className="font-semibold truncate">{r.propertyName}</p>
+                  <p className="break-words font-semibold">{r.propertyName}</p>
                   <p className="text-sm text-muted-foreground">{r.inspection.kind} · {r.inspection.reservation_ref || "no ref"}</p>
                 </div>
                 <button
