@@ -1,4 +1,6 @@
+import asyncio
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -39,7 +41,7 @@ async def upload_video(audit_id: str, room_id: str, file: UploadFile = File(...)
     _audit_room(db, audit_id, room_id)
     raw = await read_upload(file, MAX_VIDEO)
     try:
-        frames = extract_frames(raw, ext=video_ext(file))
+        frames = await run_in_threadpool(extract_frames, raw, ext=video_ext(file))
     except RuntimeError as e:
         raise HTTPException(422, str(e))
     db.add(Capture(audit_id=audit_id, room_id=room_id, kind="audit_video", frame_paths=frames))
@@ -53,7 +55,8 @@ async def upload_frames(audit_id: str, room_id: str, files: list[UploadFile] = F
     _audit_room(db, audit_id, room_id)
     rels = []
     for f in files[:60]:
-        data = imaging.normalize_upload(await read_upload(f, MAX_IMAGE), max_side=1280)
+        _raw = await read_upload(f, MAX_IMAGE)
+        data = await run_in_threadpool(lambda b=_raw: imaging.normalize_upload(b, max_side=1280))
         rels.append(storage.save_bytes("frames", data))
     db.add(Capture(audit_id=audit_id, room_id=room_id, kind="audit_frames", frame_paths=rels))
     db.commit()

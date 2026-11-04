@@ -57,7 +57,7 @@ export default function Properties() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm text-muted-foreground">
-            {total} {total === 1 ? "property" : "properties"}
+            {list.loading ? "Loading..." : `${total} ${total === 1 ? "property" : "properties"}`}
             {needsAttention > 0 && <>, <span className="font-medium text-info">{needsAttention} need{needsAttention === 1 ? "s" : ""} attention</span></>}
           </p>
         </div>
@@ -83,6 +83,7 @@ export default function Properties() {
       {list.loading && (
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[0,1,2].map(i => <Skeleton key={i} className="h-48 w-full rounded-2xl" />)}
+          {list.stillLoading && <p className="text-sm text-muted-foreground">Still loading... <button className="underline" onClick={() => list.refresh()}>Retry</button></p>}
         </div>
       )}
       {list.error && <ErrorNote message={list.error} onRetry={() => list.refresh()} />}

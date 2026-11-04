@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { AlertTriangle, ChevronLeft, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -27,12 +28,25 @@ export function Shell({ title, back, backLabel = "Back", right, children }: {
           <ThemeToggle />
         </div>
       </header>
+      <ConnectionBanner />
       <h1 className="min-w-0 break-words font-display text-3xl font-extrabold tracking-tight">{title}</h1>
       <PageTransition className="space-y-4">{children}</PageTransition>
       <MobileNav />
     </main>
     </>
   );
+}
+
+export function ConnectionBanner() {
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    const off = () => setOffline(true); const on = () => setOffline(false);
+    window.addEventListener("mm-offline", off); window.addEventListener("mm-online", on);
+    const iv = setInterval(() => { fetch(`${import.meta.env.VITE_API_URL || ""}/api/health`).then((r) => { if (r.ok) setOffline(false); }).catch(() => setOffline(true)); }, 5000);
+    return () => { window.removeEventListener("mm-offline", off); window.removeEventListener("mm-online", on); clearInterval(iv); };
+  }, []);
+  if (!offline) return null;
+  return <div className="sticky top-0 z-50 rounded-xl bg-danger px-3 py-2 text-sm font-medium text-white" role="alert">Can't reach the server. Retrying... {import.meta.env.DEV ? `API: ${import.meta.env.VITE_API_URL || "same-origin"}` : ""}</div>;
 }
 
 export function ErrorNote({ message, onRetry, className }: { message: string; onRetry?: () => void; className?: string }) {

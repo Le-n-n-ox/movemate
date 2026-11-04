@@ -38,6 +38,15 @@ class MockClient:
         # Mock returns no stage-A list so baseline keeps legacy mock behaviour.
         return []
 
+    def list_objects_video(self, frames, context=""):
+        from .base import ListedObject
+        if not frames:
+            return []
+        return [ListedObject(name="Sofa", description="grey fabric sofa", count=1, frames=list(range(len(frames)))), ListedObject(name="Cushion", description="patterned cushion", count=2, frames=[0]), ListedObject(name="TV remote", description="black remote", count=2, frames=[0]), ListedObject(name="Bible", description="red book", count=1, frames=[0])]
+
+    def same_object(self, crop_a: bytes, crop_b: bytes) -> bool:
+        return crop_a == crop_b
+
     def verify_crop(self, crop: bytes, name: str):
         return Verification(matches=True, better_name=None, confidence=0.9)
 

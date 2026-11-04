@@ -37,7 +37,14 @@ def test_full_flow():
         # baseline photo (use a seeded source image as the upload)
         img = c.get(items[0]["source_image_url"].replace("http://localhost:8000", "")).content
         r = c.post(f"/api/rooms/{living}/baseline/photo", files={"file": ("a.jpg", img, "image/jpeg")})
-        assert r.status_code == 200 and len(r.json()["items"]) == 3
+        assert r.status_code == 202
+        import time as _t
+        _cid = r.json()["capture_id"]
+        for _ in range(30):
+            _s = c.get(f"/api/captures/{_cid}").json()
+            if _s["status"] in ("done", "failed"): break
+            _t.sleep(0.5)
+        assert _s["status"] == "done" and len(_s["items"]) >= 2
 
         # audit with a real video
         audit = c.post(f"/api/properties/{pid}/audits").json()

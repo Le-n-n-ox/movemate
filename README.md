@@ -77,6 +77,11 @@ No login in v1: the role is in the link (`/audit/<id>?role=host` or `?role=clean
 An item moved inside its room, or to another room that was filmed in the same audit, is reported as `misplaced` (seen, but not where it belongs).
 Film every room in each audit so cross-room moves can be found. Details: guides, Part C.
 
+## Operations
+- Backend worker is single process; code change restarts it and interrupts scans (marked failed on restart).
+- See memory: docker compose logs backend, docker stats.
+- Health: GET /api/health reports active_jobs.
+
 ## Useful commands
 
 ```bash

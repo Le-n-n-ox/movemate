@@ -55,6 +55,7 @@ def _is_long_object(label: str) -> bool:
 
 
 _COLOUR_PATTERN = {"geometric","patterned","damask","decorative","dark","light","small","large","wooden","fabric","loveseat","throw","and","the","with","on","of"}
+_SYNONYMS = {"couch": "sofa", "sofa": "sofa", "tv": "television", "television": "television", "remote": "remote", "control": "remote"}
 
 def short_name(name: str) -> str:
     words = [w for w in str(name).replace("-", " ").split() if w]
@@ -71,6 +72,7 @@ def normalize_name(name: str) -> str:
         if len(w) > 3 and w.endswith("s") and not w.endswith("ss"):
             w = w[:-1]
         words.append(w)
+    words = [_SYNONYMS.get(w, w) for w in words]
     return " ".join(words).strip() or str(name).casefold()
 
 def _verify_result(client, crop, name):
@@ -135,6 +137,85 @@ def filter_segments(objs: list[dict]) -> list[dict]:
         out.append(o)
     return out
 
+
+
+def _sharpness(img_bytes: bytes) -> float:
+    """Variance of Laplacian approximation on 64px grey thumbnail (pure PIL, no cv2)."""
+    try:
+        from PIL import Image
+        import io
+        im = imaging.open_image(img_bytes).convert("L").resize((64, 64))
+        px = list(im.getdata())
+        # Laplacian kernel [-4,1,1,1,1] approx via centre vs neighbours
+        vals = []
+        for y in range(1, 63):
+            for x in range(1, 63):
+                i = y * 64 + x
+                lap = 4 * px[i] - px[i-1] - px[i+1] - px[i-64] - px[i+64]
+                vals.append(lap)
+        mean = sum(vals) / len(vals)
+        return sum((v-mean)**2 for v in vals) / len(vals)
+    except Exception:
+        return 0.0
+
+
+def _phash(img_bytes: bytes) -> int:
+    try:
+        im = imaging.open_image(img_bytes).convert("L").resize((8, 8))
+        px = list(im.getdata())
+        avg = sum(px)/len(px)
+        h = 0
+        for v in px:
+            h = (h << 1) | (1 if v > avg else 0)
+        return h
+    except Exception:
+        return 0
+
+
+def _hamming(a: int, b: int) -> int:
+    return bin(a ^ b).count("1")
+
+
+def select_frames(frame_bytes_list: list[bytes], target: int = 8) -> list[int]:
+    """Evenly sample 8-12 frames, drop blurry (sharpness < threshold) and near-identical, keep sharpest per segment."""
+    n = len(frame_bytes_list)
+    if n == 0:
+        return []
+    # sharpness per frame
+    sharp = [_sharpness(b) for b in frame_bytes_list]
+    # blur threshold: median * 0.3, floor 50
+    ssorted = sorted(sharp)
+    med = ssorted[len(ssorted)//2] if ssorted else 0
+    thresh = max(30.0, med * 0.25)
+    candidates = [i for i, s in enumerate(sharp) if s >= thresh] or list(range(n))
+    while len(candidates) > target:
+        # evenly thin
+        candidates = candidates[::2] if len(candidates) > target else candidates
+        if len(candidates) <= target:
+            break
+        # fallback even spread
+        step = len(candidates) / target
+        candidates = [candidates[int(i*step)] for i in range(target)]
+    # segment sharpest: divide timeline into target segments, pick sharpest candidate in each
+    if len(candidates) < target and n >= target:
+        segs = []
+        for k in range(target):
+            lo, hi = int(k*n/target), int((k+1)*n/target)
+            pool = [i for i in range(lo, hi) if sharp[i] >= thresh] or list(range(lo, hi))
+            segs.append(max(pool, key=lambda i: sharp[i]))
+        candidates = sorted(set(segs))
+    # near-identical drop via phash hamming < 6
+    ph = [_phash(b) for b in frame_bytes_list]
+    kept = []
+    for i in candidates:
+        if any(_hamming(ph[i], ph[j]) < 6 for j in kept):
+            continue
+        kept.append(i)
+    return sorted(kept)[:target]
+
+
+def _crop_hash_bytes(crop: bytes) -> int:
+    return _phash(crop)
 
 def _legacy_objects(client, img: bytes, frame_no: int) -> list[dict]:
     segs = [
@@ -210,7 +291,7 @@ def _close_up_objects(client, img: bytes, frame_no: int) -> list[dict]:
              "frame": frame_no, "crop": img, "image": img, "notes": None}]
 
 
-def _objects_in_image(client, img: bytes, frame_no: int, close_up: bool = False) -> list[dict]:
+def detect_items(client, img: bytes, frame_no: int = 0, close_up: bool = False, frame_index: int | None = None) -> list[dict]:
     if close_up:
         return _close_up_objects(client, img, frame_no)
     listed = []
@@ -326,6 +407,9 @@ def _objects_in_image(client, img: bytes, frame_no: int, close_up: bool = False)
     return objs
 
 
+_objects_in_image = detect_items  # back-compat alias; shared pipeline is detect_items
+
+
 def _to_items(db: Session, room: Room, capture: Capture, objs: list[dict], source_rel_for, priority: str) -> list[Item]:
     # (d) do not create suggested duplicate if same normalized name already confirmed in room
     confirmed_norm = {normalize_name(i.label) for i in db.query(Item).filter(Item.room_id == room.id, Item.status == "confirmed").all()}
@@ -338,45 +422,205 @@ def _to_items(db: Session, room: Room, capture: Capture, objs: list[dict], sourc
         item = Item(room_id=room.id, capture_id=capture.id, label=o["label"], category=o.get("category"),
                     quantity=int(o.get("quantity", 1)), priority=priority, bbox=o.get("bbox"), crop_path=crop_rel,
                     source_image_path=source_rel_for(o), status="suggested", notes=None,
-                    needs_check=bool(o.get("needs_check", False)), detection_confidence=o.get("detection_confidence"))
+                    needs_check=bool(o.get("needs_check", False)), detection_confidence=o.get("detection_confidence"), frames_seen=o.get("frames_seen"), frames_total=o.get("frames_total"), description=o.get("description"))
         db.add(item)
         items.append(item)
     db.commit()
     return items
 
 
-def process_photo(db: Session, room: Room, raw: bytes, priority: str = "high", close_up: bool = False) -> tuple[Capture, list[Item]]:
+def process_photo(db: Session, room: Room, raw: bytes, priority: str = "high", close_up: bool = False, capture: Capture | None = None) -> tuple[Capture, list[Item]]:
     client = get_client()
     img = imaging.normalize_upload(raw)
     src_rel = storage.save_bytes(f"baseline/{room.id}", img)
-    capture = Capture(room_id=room.id, kind="baseline_photo", media_path=src_rel)
-    db.add(capture)
-    db.commit()
+    if capture is None:
+        capture = Capture(room_id=room.id, kind="baseline_photo", media_path=src_rel, status="done")
+        db.add(capture); db.commit()
+    else:
+        capture.media_path = src_rel; capture.status = "detecting"; db.commit()
     if priority == "close_up":
         close_up = True
         priority = "high"
-    objs = _objects_in_image(client, img, 0, close_up=close_up)
+    objs = detect_items(client, img, 0, close_up=close_up)
     return capture, _to_items(db, room, capture, objs, lambda o: src_rel, priority)
 
 
-def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4") -> tuple[Capture, list[Item]]:
-    client = get_client()
-    frame_rels = extract_frames(raw, ext=ext)
-    capture = Capture(room_id=room.id, kind="baseline_video", frame_paths=frame_rels)
-    db.add(capture)
-    db.commit()
-    # segment every 3rd frame (cap 10 frames) to control cost
-    picks = list(range(0, len(frame_rels), 3))[:10]
-    objs: list[dict] = []
-    for i in picks:
-        img = storage.read_bytes(frame_rels[i])
-        objs += _objects_in_image(client, img, i)
-    merged = dedupe([o for o in objs if o.get("bbox")])
+
+def merge_cross_frame(objs: list[dict], total_frames: int) -> list[dict]:
+    """Merge detections across frames without depending on box position.
+
+    Track ids take precedence if present; otherwise normalized name + crop phash similarity.
+    Quantity = max distinct instances in any single frame. Sharpest/largest crop kept.
+    """
+    # group by normalized name first
+    by_name: dict[str, list[dict]] = {}
+    for o in objs:
+        if not o.get("bbox"):
+            continue
+        by_name.setdefault(normalize_name(o["label"]), []).append(o)
+    merged = []
+    for key, group in by_name.items():
+        # distinct per frame
+        per_frame: dict[int, list[dict]] = {}
+        for o in group:
+            per_frame.setdefault(int(o.get("frame", 0)), []).append(o)
+        max_per_frame = max((len(v) for v in per_frame.values()), default=0)
+        # sharpest crop: use crop phash sharpness approx via _sharpness on crop bytes if available
+        def _score(o):
+            try:
+                return _sharpness(o.get("crop") or b"") * (o["bbox"]["w"] * o["bbox"]["h"])
+            except Exception:
+                return o.get("conf", 0)
+        best = max(group, key=_score)
+        m = dict(best)
+        m["quantity"] = max_per_frame or 1
+        m["frames_seen"] = len(per_frame)
+        m["frames_total"] = total_frames
+        # label: keep best label (short)
+        m["label"] = short_name(m["label"])
+        merged.append(m)
+    # null bbox items deduped by normalized name
     nulls = [o for o in objs if not o.get("bbox")]
-    seen_null = set()
+    seen = set()
     for o in nulls:
-        key = o["label"].strip().casefold()
-        if key not in seen_null:
-            seen_null.add(key)
-            merged.append(o)
-    return capture, _to_items(db, room, capture, merged, lambda o: frame_rels[o["frame"]], "normal")
+        k = normalize_name(o["label"])
+        if k in seen:
+            continue
+        seen.add(k)
+        o2 = dict(o); o2["frames_seen"] = 1; o2["frames_total"] = total_frames
+        merged.append(o2)
+    return merged
+
+def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4", capture: Capture | None = None) -> tuple[Capture, list[Item]]:
+    client = get_client()
+    if capture is not None:
+        try: capture.status = "extracting_frames"; capture.stage = "Choosing frames"; capture.progress = 0.05; db.commit()
+        except Exception: pass
+    frame_rels = extract_frames(raw, ext=ext)
+    if capture is None:
+        capture = Capture(room_id=room.id, kind="baseline_video", frame_paths=frame_rels, status="done")
+        db.add(capture); db.commit()
+    else:
+        capture.frame_paths = frame_rels; db.commit()
+    # Frame selection: even 8-12, drop blurry/near-identical, sharpest per segment
+    if db:
+        try:
+            capture.status = "detecting"; db.commit()
+        except Exception:
+            pass
+    frame_bytes = [storage.read_bytes(rel) for rel in frame_rels]
+    picks = select_frames(frame_bytes, target=8)
+    log.info("baseline video: frames_total=%d selected=%d", len(frame_bytes), len(picks))
+    print(f"baseline video: frames_total={len(frame_bytes)} selected={len(picks)}")
+    kept = [frame_bytes[i] for i in picks]
+    # STAGE A: ONE inventory for whole clip
+    try:
+        capture.stage = "Listing items"; capture.progress = 0.2; db.commit()
+    except Exception: pass
+    master = []
+    if hasattr(client, "list_objects_video"):
+        try:
+            master = client.list_objects_video(kept, context=room.name + " section") or []
+        except Exception:
+            master = []
+    if not master:
+        # fallback: per-frame detect then merge (mock/legacy)
+        objs: list[dict] = []
+        for idx, i in enumerate(picks):
+            objs += detect_items(client, frame_bytes[i], i)
+        merged = merge_cross_frame(objs, total_frames=len(picks))
+        return capture, _to_items(db, room, capture, merged, lambda o: frame_rels[o["frame"]], "normal")
+    # merge master by normalized name + similar description
+    merged_master: dict[str, object] = {}
+    order = []
+    for m in master[:25]:
+        key = normalize_name(m.name) + "|" + str(getattr(m, "description", "") or "")[:20]
+        # simpler: normalized name alone for grouping, description similarity checked via key above will keep colour variants separate - use normalized name only
+        key = normalize_name(m.name)
+        if key not in merged_master:
+            merged_master[key] = m; order.append(key)
+        else:
+            try: merged_master[key].count = int(getattr(merged_master[key], 'count', 1) or 1) + int(getattr(m, 'count', 1) or 1)
+            except Exception: pass
+    # STAGE B: locate each once
+    objs2 = []
+    for idx, key in enumerate(order):
+        m = merged_master[key]
+        name = short_name(getattr(m, "name", str(m)))
+        try:
+            capture.stage = f"Locating items {idx + 1} of {len(order)}"; capture.progress = 0.2 + 0.6 * (idx / max(1, len(order))); db.commit()
+        except Exception: pass
+        listed_frames = list(getattr(m, "frames", []) or [])
+        # prefer sharpest/largest: sort listed frames by sharpness desc
+        listed_frames_sorted = sorted(listed_frames, key=lambda fi: _sharpness(kept[fi]) if 0 <= fi < len(kept) else 0, reverse=True)
+        if not listed_frames_sorted:
+            listed_frames_sorted = list(range(len(kept)))
+        found = []
+        for fi in listed_frames_sorted:
+            if fi < 0 or fi >= len(kept): continue
+            img = kept[fi]
+            try:
+                segs = _call_segment(client, img, prompts=[name])
+            except Exception:
+                segs = []
+            cands = []
+            for s in segs:
+                cands.append({"label": name, "category": getattr(m, "category", None), "conf": float(s.score), "bbox": s.bbox, "frame": picks[fi], "crop": None, "image": img, "score": float(s.score), "quantity": 1, "needs_check": False, "detection_confidence": float(s.score), "description": getattr(m, "description", "")})
+            cands = nms(filter_segments(cands), iou_same=settings.segment_nms_iou_same, iou_cross=settings.segment_nms_iou_cross)
+            if cands:
+                found = cands[: max(1, int(getattr(m, "count", 1) or 1))]
+                break
+        if found:
+            for o in found:
+                try: o["crop"] = imaging.crop_bbox(kept[picks.index(o["frame"])] if o["frame"] in picks else kept[0], o["bbox"])
+                except Exception: o["crop"] = kept[0]
+                o["frames_seen"] = len(listed_frames) if listed_frames else 1
+                o["frames_total"] = len(kept)
+                o["source_frame_idx"] = o["frame"]
+                objs2.append(o)
+        else:
+            objs2.append({"label": name, "category": getattr(m, "category", None), "conf": 0.5, "bbox": None, "frame": picks[listed_frames_sorted[0]] if listed_frames_sorted else picks[0], "crop": kept[0], "image": kept[0], "notes": None, "quantity": int(getattr(m, "count", 1) or 1), "needs_check": True, "detection_confidence": 0.5, "frames_seen": 0, "frames_total": len(kept), "description": getattr(m, "description", "")})
+    # VERIFY by appearance
+    try: capture.stage = "Combining duplicates"; capture.progress = 0.85; db.commit()
+    except Exception: pass
+    verified = []
+    for o in objs2:
+        if not o.get("bbox"): verified.append(o); continue
+        try:
+            crop = imaging.crop_bbox(o["image"], o["bbox"])
+        except Exception: crop = o["crop"]
+        o["crop"] = crop
+        try:
+            matches, better, vconf = _verify_result(client, crop, o["label"])
+            if not matches and not better: continue
+            if better: o["label"] = short_name(better); o["needs_check"] = True
+            elif vconf < 0.5: o["needs_check"] = True
+        except Exception: pass
+        verified.append(o)
+    # dedup by appearance: phash + same_object
+    deduped = []
+    for o in verified:
+        if not o.get("bbox"): deduped.append(o); continue
+        merged_flag = False
+        for d in deduped:
+            if not d.get("bbox"): continue
+            if normalize_name(d["label"]) != normalize_name(o["label"]): 
+                # different name, check phash similarity then ask model
+                try:
+                    if _hamming(_phash(d["crop"]), _phash(o["crop"])) <= 10 and hasattr(client, "same_object") and client.same_object(d["crop"], o["crop"]):
+                        merged_flag = True; break
+                except Exception: pass
+            else:
+                # same normalized name, non-overlapping already handled by quantity; if boxes overlap heavily it's same object -> quantity 1 not 2
+                if iou(d["bbox"], o["bbox"]) > 0.5:
+                    merged_flag = True; break
+                try:
+                    if _hamming(_phash(d["crop"]), _phash(o["crop"])) <= 10 and hasattr(client, "same_object") and client.same_object(d["crop"], o["crop"]):
+                        merged_flag = True; break
+                except Exception: pass
+        if not merged_flag:
+            deduped.append(o)
+    # cap 25 most confident
+    deduped = sorted(deduped, key=lambda x: x.get("conf", 0), reverse=True)[:25]
+    if len(verified) > 25: log.warning("baseline video: capped at 25, %d not listed", len(verified)-25)
+    return capture, _to_items(db, room, capture, deduped, lambda o: frame_rels[o["frame"]], "normal")

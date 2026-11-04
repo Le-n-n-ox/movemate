@@ -426,10 +426,50 @@ class MetaClient:
                 size = str(d.get("size", "medium")).lower()
                 if size not in ("small", "medium", "large"):
                     size = "medium"
+                fr = d.get("frames") or d.get("frame_numbers") or []
                 out.append(ListedObject(name=str(name), description=str(d.get("description", "")),
-                                        count=max(1, cnt), size=size, category=d.get("category")))
+                                        count=max(1, cnt), size=size, category=d.get("category"), frames=[int(x) for x in fr] if isinstance(fr, list) else []))
             return out
         return self._with_retry(_do)
+
+    def list_objects_video(self, frames, context: str = "") -> list[ListedObject]:
+        def _do():
+            ctx = context or "one area"
+            prompt = (
+                f"Context: {ctx}. These {len(frames)} frames are from ONE continuous video of ONE area, from different angles. "
+                "List every distinct physical object ONCE. If an object appears in several frames, list it once. "
+                "Give a short canonical name (at most 4 words), the count of identical items, a short visual description (color, material, size), and the frame numbers (0-based, as sent) where it is clearly visible. "
+                "Do not list walls, floors, ceilings, windows, or fixtures that cannot be moved. Return strict JSON only."
+            )
+            text = self._chat(settings.meta_reason_model, list(frames), prompt)
+            m = re.search(r"\[[\s\S]*\]", text)
+            if not m:
+                return []
+            try:
+                data = json.loads(m.group(0))
+            except Exception:
+                return []
+            if isinstance(data, dict):
+                data = data.get("items") or data.get("objects") or []
+            out = []
+            for d in data if isinstance(data, list) else []:
+                if not isinstance(d, dict) or not (d.get("name") or d.get("label")):
+                    continue
+                try: cnt = int(d.get("count", 1))
+                except Exception: cnt = 1
+                fr = d.get("frames") or d.get("frame_numbers") or []
+                out.append(ListedObject(name=str(d.get("name") or d.get("label")), description=str(d.get("description", "")), count=max(1, cnt), size=str(d.get("size", "medium")).lower() if str(d.get("size", "medium")).lower() in ("small","medium","large") else "medium", category=d.get("category"), frames=[int(x) for x in fr] if isinstance(fr, list) else []))
+            return out
+        return self._with_retry(_do)
+
+    def same_object(self, crop_a: bytes, crop_b: bytes) -> bool:
+        def _do():
+            d = _parse_json(self._chat(settings.meta_reason_model, [crop_a, crop_b], "Are these the same physical object? Return JSON only: {\"same\": true|false}"))
+            return bool(d.get("same", False))
+        try:
+            return self._with_retry(_do)
+        except Exception:
+            return False
 
     def verify_crop(self, crop: bytes, name: str) -> Verification:
         def _do():

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, ScanLine, Video } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { BaselineResult, ItemOut, BBox } from "@/lib/types";
+import type { CaptureStatus, ItemOut, BBox } from "@/lib/types";
 import { BBoxOverlay } from "@/components/BBoxOverlay";
 import { FilePicker } from "@/components/FilePicker";
 import { ErrorNote } from "@/components/Shell";
@@ -27,26 +27,77 @@ export function ScanCard({ roomId, suggested, onDone, selectedId, onSelect }: {
   useEffect(() => () => { if (previewRef.current) URL.revokeObjectURL(previewRef.current); }, []);
 
   const [drawBox, setDrawBox] = useState<BBox | null>(null);
+  const [job, setJob] = useState<CaptureStatus | null>(null);
+  const [uploadPct, setUploadPct] = useState(0);
   const [drawTarget, setDrawTarget] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const pollRef = useRef(0);
+
+  // Resume any in-progress or recently-failed scan after leaving/returning.
+  // The server (GET /rooms/:id/captures) is source of truth, not local upload state.
+  useEffect(() => {
+    let cancelled = false;
+    const myPoll = ++pollRef.current;
+    const resume = async () => {
+      try {
+        const caps = await api.listRoomCaptures(roomId);
+        if (cancelled || pollRef.current !== myPoll) return;
+        const active = caps.find((c) => c.status !== "done" && c.status !== "failed")
+          || caps.find((c) => c.status === "failed" && Date.now() - new Date(c.stage || "").getTime() < 0); // failed fallback below
+        const latest = caps[0];
+        const target = active || (latest && latest.status === "failed" ? latest : null);
+        if (!target) return;
+        setJob(target);
+        // poll until done/failed, even if user navigated away and back (this effect reruns)
+        for (let i = 0; i < 90; i++) {
+          if (cancelled || pollRef.current !== myPoll) return;
+          await new Promise((r) => setTimeout(r, 2000));
+          try {
+            const s = await api.getCapture(target.capture_id);
+            if (cancelled || pollRef.current !== myPoll) return;
+            setJob(s);
+            if (s.status === "done") { setCapture({ preview: null, name: s.stage || "scan", ids: s.items.map((it) => it.id) }); onDone(); break; }
+            if (s.status === "failed") { setError(s.error || "Scan failed"); break; }
+          } catch { /* keep polling */ }
+        }
+      } catch { /* no captures yet - ignore */ }
+    };
+    void resume();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
 
   async function run(kind: "photo" | "video", file: File) {
+    if (busy) return;
     const preview = kind === "photo" ? URL.createObjectURL(file) : null;
-    setBusy(kind); setError(null);
+    setBusy(kind); setError(null); setUploadPct(0);
     retry.current = () => void run(kind, file);
     try {
-      const r: BaselineResult = kind === "photo"
+      const r = kind === "photo"
         ? await api.baselinePhoto(roomId, file, important ? ("close_up" as "high") : "normal")
         : await api.baselineVideo(roomId, file);
-      // success: the new preview replaces the old one, so release the old one
+      setUploadPct(100);
       if (previewRef.current) URL.revokeObjectURL(previewRef.current);
       previewRef.current = preview;
-      setCapture({ preview, name: file.name, ids: r.items.map((i) => i.id) });
-      if (r.items.length) toast.success(`${r.items.length} items found`);
-      onDone();
+      // poll job
+      try { localStorage.setItem(`mm-capture-${roomId}`, r.capture_id); } catch {}
+      setJob({ capture_id: r.capture_id, status: "queued", progress: 0, stage: "Queued", error: null, item_count: 0, frames_seen: 0, frames_total: 0, items: [] });
+      const myPoll = ++pollRef.current;
+      const poll = async () => {
+        for (let i = 0; i < 90; i++) {
+          if (pollRef.current !== myPoll) return;
+          await new Promise((res) => setTimeout(res, 2000));
+          try {
+            const s = await api.getCapture(r.capture_id);
+            setJob(s);
+            if (s.status === "done") { setCapture({ preview, name: file.name, ids: s.items.map((it) => it.id) }); onDone(); break; }
+            if (s.status === "failed") { setError(s.error || "Scan failed"); break; }
+          } catch { /* keep polling */ }
+        }
+      };
+      void poll();
     } catch (e) {
-      // failure: the new preview was never shown, so release it. The old one stays on screen.
       if (preview) URL.revokeObjectURL(preview);
       setError((e as Error).message);
     }
@@ -81,7 +132,10 @@ export function ScanCard({ roomId, suggested, onDone, selectedId, onSelect }: {
           <p className="text-sm text-muted-foreground">This can take up to 30 seconds. Please keep this page open.</p>
         </div>
       )}
+      {job && (job.status !== "done") && (<div className="space-y-2 rounded-xl border p-3"><p className="text-sm font-medium">{job.stage || "Processing"}</p><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.round((job.progress || 0) * 100)}%` }} /></div><p className="text-xs text-muted-foreground">Upload {uploadPct}% - reading video with AI ({Math.round((job.progress || 0) * 100)}%). You can leave this page - progress stays on the server.</p></div>)}
+      {job?.status === "failed" && (<div className="space-y-2 rounded-xl border border-danger/40 p-3"><p className="text-sm">{job.error}</p><Button variant="outline" onClick={() => retry.current?.()}>Retry</Button></div>)}
       {error && <ErrorNote message={error} onRetry={() => retry.current?.()} />}
+      <p className="text-xs text-muted-foreground">API: {import.meta.env.VITE_API_URL || "same-origin"} - if the app calls localhost from a phone, set it to this computer network address.</p>
       {capture && !busy && (
         <div className="pop space-y-2">
           {sourceSrc && (

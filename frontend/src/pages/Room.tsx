@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CheckCheck, ListChecks, MapPin, Plus, ScanLine, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { PlacesCard } from "@/components/room/PlacesCard";
 import { SuggestedCard } from "@/components/room/SuggestedCard";
 import { ReviewQueue } from "@/components/room/ReviewQueue";
 import { ConfirmedItem } from "@/components/room/ConfirmedItem";
+import type { CaptureStatus } from "@/lib/types";
 
 const jump = (id: string) =>
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -27,6 +28,24 @@ export default function Room() {
   const places = useAsync(() => api.listLocations(roomId), [roomId]);
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeScan, setActiveScan] = useState<CaptureStatus | null>(null);
+  const [groupPhoto, setGroupPhoto] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const caps = await api.listRoomCaptures(roomId);
+        if (cancelled) return;
+        const a = caps.find((c) => c.status !== "done" && c.status !== "failed") || null;
+        setActiveScan(a);
+        if (!a && caps.some((c) => c.status === "done")) refresh();
+      } catch {}
+    };
+    void tick();
+    const iv = setInterval(tick, 2000);
+    return () => { cancelled = true; clearInterval(iv); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
 
   const refresh = () => { void room.refresh(true); void items.refresh(true); void places.refresh(true); };
   const suggested = items.data?.filter((i) => i.status === "suggested") ?? [];
@@ -72,6 +91,13 @@ export default function Room() {
 
           <RoomHeader room={room.data} onChanged={refresh} />
 
+          {activeScan && (
+            <div className="sticky top-2 z-40 space-y-1 rounded-xl border bg-card p-3 shadow" role="status" aria-live="polite">
+              <p className="text-sm font-medium">Scan running: {activeScan.stage || "Processing"} ({Math.round((activeScan.progress || 0) * 100)}%)</p>
+              <div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.round((activeScan.progress || 0) * 100)}%` }} /></div>
+              <p className="text-xs text-muted-foreground">You can leave this page - it keeps running on the server.</p>
+            </div>
+          )}
           <div id="scan" className="jump-target">
             <ScanCard roomId={roomId} suggested={suggested} onDone={refresh} selectedId={selectedId} onSelect={setSelectedId} />
           </div>
@@ -85,6 +111,7 @@ export default function Room() {
                   <span className="rounded-full bg-info/15 px-2 py-0.5 text-sm font-semibold text-info">{suggested.length}</span>
                 </h2>
                 <Button variant="outline" className="btn-tap" onClick={confirmAll}><CheckCheck className="size-5" /> Confirm all</Button>
+                <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={!!groupPhoto} onChange={(e) => setGroupPhoto(e.target.checked)} /> Group by photo</label>
               </div>
               <div className="stagger space-y-4">
                 <ReviewQueue items={suggested} onChanged={refresh} onConfirmAll={confirmAll} onSelect={setSelectedId} />

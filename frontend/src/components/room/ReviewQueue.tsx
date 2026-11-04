@@ -65,6 +65,7 @@ export function ReviewQueue({ items, onChanged, onConfirmAll, onSelect }: {
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted" aria-label="Progress"><div className="h-full bg-primary" style={{ width: `${progress}%` }} /></div>
       {item.needs_check && <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Check this one</span>}
+      {item.frames_seen != null && item.frames_total != null && <p className="text-xs text-muted-foreground">Seen in {item.frames_seen} of {item.frames_total} frames</p>}
       {item.source_image_url ? (
         <div onMouseDown={(e) => {
           if (!drawBox && !item.bbox) return;
@@ -99,6 +100,9 @@ export function ReviewQueue({ items, onChanged, onConfirmAll, onSelect }: {
         <Button variant="outline" size="icon" className="size-12" aria-label="Fewer" onClick={() => setQty(Math.max(1, (qty || item.quantity) - 1))}><Minus className="size-5" /></Button>
         <span className="w-10 text-center text-lg font-semibold">{curQty}</span>
         <Button variant="outline" size="icon" className="size-12" aria-label="More" onClick={() => setQty(Math.min(999, (qty || item.quantity) + 1))}><Plus className="size-5" /></Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="text-sm">Merge with: <select className="rounded-xl border bg-card px-2 py-2" value="" onChange={async (e) => { const otherId = e.target.value; if (!otherId) return; const other = items.find((i) => i.id === otherId); if (!other) return; try { await api.patchItem(item.id, { quantity: (item.quantity || 1) + (other.quantity || 1) }); await api.deleteItem(otherId); toast.success("Merged"); onChanged(); } catch (err) { toast.error((err as Error).message); } }}><option value="">Select item</option>{items.filter((i) => i.id !== item.id).map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}</select></label>
       </div>
       <div className="flex flex-wrap gap-2">
         <Button disabled={busy} onClick={() => act(() => api.patchItem(item.id, { label: curLabel.trim(), quantity: curQty, status: "confirmed" }))}><Check className="size-5" /> Confirm</Button>

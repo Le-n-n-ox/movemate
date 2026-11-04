@@ -3,8 +3,23 @@ import type * as T from "./types";
 // Docker sets VITE_API_URL explicitly (http://localhost:8000). When running
 // Vite outside Docker we fall back to a same-origin relative URL so the dev
 // server proxy in vite.config.ts handles the request (no CORS involved).
-export const API_URL: string =
-  import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "" : "http://localhost:8000");
+function resolveApiUrl(): string {
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  // If the page was opened via a LAN IP or localhost, use the same host for the API
+  // so PC (localhost) and phone (192.168.x.x) both work without a rebuild.
+  if (host && envUrl) {
+    try {
+      const u = new URL(envUrl);
+      const pageIsLocal = host === "localhost" || host === "127.0.0.1" || /^192\.168\./.test(host) || /^10\./.test(host) || /^172\.(1[6-9]|2[0-9]|3[01])\./.test(host);
+      if (pageIsLocal && u.hostname !== host) {
+        return `${u.protocol}//${host}:${u.port || 8000}`;
+      }
+    } catch { /* fall through */ }
+  }
+  return envUrl ?? (import.meta.env.DEV ? "" : "http://localhost:8000");
+}
+export const API_URL: string = resolveApiUrl();
 
 export class ApiError extends Error {
   status: number;
@@ -14,13 +29,22 @@ export class ApiError extends Error {
   }
 }
 
-async function req<R>(path: string, init?: RequestInit): Promise<R> {
+let _fails = 0;
+export function recordFail() { _fails++; if (_fails >= 2) window.dispatchEvent(new Event("mm-offline")); }
+export function recordOk() { _fails = 0; window.dispatchEvent(new Event("mm-online")); }
+
+async function req<R>(path: string, init?: RequestInit, timeoutMs = 15000): Promise<R> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   let res: Response;
   try {
-    res = await fetch(`${API_URL}/api${path}`, init);
-  } catch {
-    throw new Error("Cannot reach the server. Check your connection and try again.");
-  }
+    res = await fetch(`${API_URL}/api${path}`, { ...init, signal: ctrl.signal });
+  } catch (e: any) {
+    recordFail();
+    if (e?.name === "AbortError") throw new Error("The server is busy or unreachable.");
+    throw new Error(`Cannot reach the server (${API_URL}). Check that the backend is running (docker compose ps) and that you are on the same Wi-Fi.`);
+  } finally { clearTimeout(timer); }
+  recordOk();
   if (!res.ok) {
     let detail = `Something went wrong (${res.status}).`;
     try {
@@ -80,8 +104,10 @@ export const api = {
 
   // baseline + items
   baselinePhoto: (rid: string, file: File, priority: "high" | "normal" = "normal") =>
-    req<T.BaselineResult>(`/rooms/${rid}/baseline/photo`, form({ file, priority })),
-  baselineVideo: (rid: string, file: File) => req<T.BaselineResult>(`/rooms/${rid}/baseline/video`, form({ file })),
+    req<T.BaselineAck>(`/rooms/${rid}/baseline/photo`, form({ file, priority }), 60000),
+  baselineVideo: (rid: string, file: File) => req<T.BaselineAck>(`/rooms/${rid}/baseline/video`, form({ file }), 60000),
+  getCapture: (id: string) => req<T.CaptureStatus>(`/captures/${id}`),
+  listRoomCaptures: (rid: string) => req<T.CaptureStatus[]>(`/rooms/${rid}/captures`),
   listItems: (rid: string, status?: string) => req<T.ItemOut[]>(`/rooms/${rid}/items${qs({ status })}`),
   createItem: (rid: string, b: T.ItemCreate) => req<T.ItemOut>(`/rooms/${rid}/items`, json("POST", b)),
   patchItem: (id: string, b: T.ItemPatch) => req<T.ItemOut>(`/items/${id}`, json("PATCH", b)),

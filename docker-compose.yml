@@ -35,6 +35,8 @@ services:
       - ./data:/data
     ports:
       - "8000:8000"
+    mem_limit: 2g
+    # NOTE: code change restarts worker and interrupts running scans.
     depends_on:
       db:
         condition: service_healthy

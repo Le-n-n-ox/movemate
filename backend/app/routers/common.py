@@ -37,7 +37,7 @@ def item_out(i: Item, db: Session | None = None) -> ItemOut:
     return ItemOut(id=i.id, room_id=i.room_id, label=i.label, category=i.category, quantity=i.quantity,
                    priority=i.priority, bbox=i.bbox, crop_url=storage.url_for(i.crop_path),
                    source_image_url=storage.url_for(i.source_image_path), location_hint=i.location_hint,
-                   notes=i.notes, status=i.status, location_id=i.location_id,
+                   notes=i.notes, description=getattr(i,'description',None), status=i.status, location_id=i.location_id,
                    location_path=locations.room_path(db, i.location_id) if (db is not None and i.location_id) else None,
                    kind=i.kind or "movable", condition=i.condition or "good", availability=i.availability or "guest",
                    high_value=bool(i.high_value), min_quantity=i.min_quantity,

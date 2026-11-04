@@ -24,10 +24,10 @@ export type Availability = "guest" | "staff_only";
 export interface ItemOut {
   id: string; room_id: string; label: string; category: string | null; quantity: number; priority: string;
   bbox: BBox | null; crop_url: string | null; source_image_url: string | null;
-  location_hint: string | null; notes: string | null; status: "suggested" | "confirmed" | "retired";
+  location_hint: string | null; notes: string | null; description: string | null; status: "suggested" | "confirmed" | "retired";
   location_id: string | null; location_path: string | null; kind: ItemKind; condition: ItemCondition;
   availability: Availability; high_value: boolean; min_quantity: number | null; alternate_locations: string[];
-  needs_check: boolean; detection_confidence: number | null;
+  needs_check: boolean; detection_confidence: number | null; frames_seen: number | null; frames_total: number | null;
 }
 export interface ItemCreate {
   label: string; quantity?: number; bbox?: BBox | null; kind?: ItemKind; category?: string; location_id?: string;
@@ -44,6 +44,8 @@ export interface ConditionEventOut {
   note: string | null; photo_url: string | null; actor: string; role: Role | null; created_at: string;
 }
 export interface BaselineResult { capture_id: string; items: ItemOut[] }
+export interface BaselineAck { capture_id: string; status: string }
+export interface CaptureStatus { capture_id: string; status: string; progress: number; stage: string | null; error: string | null; item_count: number; frames_seen: number; frames_total: number; items: ItemOut[] }
 
 export interface GuestProperty { property_name: string; item_labels: string[]; house_rules: string | null }
 export interface GuestGuide { title: string; steps: string[]; warnings: string[]; seen: string; unsure: string[] }
@@ -65,7 +67,7 @@ export interface AuditDetail {
   stage: string | null; summary: string | null; rooms_uploaded: string[]; findings: FindingOut[]; created_at: string;
 }
 export interface SeedResult { property_id: string; guest_token: string; room_ids: string[] }
-export interface Health { status: string; mock_models: boolean }
+export interface Health { status: string; mock_models: boolean; active_jobs: number; worker_busy: boolean }
 
 export type InspectionKind = "after_checkout" | "after_cleaning" | "before_checkin";
 export type InspectionStatus = "in_progress" | "completed" | "completed_with_exception";

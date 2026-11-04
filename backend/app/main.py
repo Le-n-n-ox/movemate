@@ -46,6 +46,15 @@ async def lifespan(app: FastAPI):
         )
         command.upgrade(alembic_config, "head")
     storage.data_root()
+    # mark interrupted captures failed on restart
+    try:
+        from .models import Capture as _Cap
+        _db = SessionLocal()
+        for _c in _db.query(_Cap).filter(_Cap.status.in_(["queued","extracting_frames","detecting","naming","verifying","processing"])).all():
+            _c.status = "failed"; _c.error = "Interrupted. Please try again."
+        _db.commit(); _db.close()
+    except Exception:
+        pass
     # Start retention cleanup thread
     cleanup_thread = threading.Thread(target=_run_retention_cleanup, daemon=True)
     cleanup_thread.start()
@@ -61,7 +70,9 @@ api = APIRouter(prefix="/api")
 
 @api.get("/health", response_model=Health, tags=["meta"])
 def health():
-    return Health(status="ok", mock_models=settings.mock_models)
+    from .services.baseline_jobs import active_jobs
+    n = active_jobs()
+    return Health(status="ok", mock_models=settings.mock_models, active_jobs=n, worker_busy=n > 0)
 
 
 for r in (properties.router, baseline.router, items.router, guest.router, audits.router, inspections.router, discrepancies.router, stays.router):
