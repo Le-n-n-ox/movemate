@@ -78,7 +78,7 @@ export default function Audit() {
           <div className="relative grid size-24 place-items-center" aria-hidden>
             <span className="absolute inset-0 animate-ping rounded-full bg-info/20" />
             <span className="absolute inset-3 animate-pulse rounded-full bg-info/20" />
-            <span className="relative grid size-14 place-items-center rounded-full bg-info text-white">
+            <span className="relative grid size-14 place-items-center rounded-full bg-info text-info-foreground">
               <ScanSearch className="size-7" />
             </span>
           </div>

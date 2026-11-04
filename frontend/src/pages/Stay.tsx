@@ -23,7 +23,7 @@ function ErrorBox({ text }: { text: string }) {
 }
 
 export default function Stay() {
-  const { token = "" } = useParams();
+  const { stayToken: token = "" } = useParams();
   const info = useAsync(() => api.stayHome(token), [token]);
   const [receipt, setReceipt] = useState<any>(null);
   const [busy, setBusy] = useState(false);
@@ -197,7 +197,7 @@ export default function Stay() {
 
       <Card className="gap-3 p-5">
         <h2 className="card-title">
-          <span className="icon-badge bg-warn/20 text-amber-800 dark:text-amber-300"><Flag className="size-5" aria-hidden /></span> Anything to report?
+          <span className="icon-badge bg-warn/20 text-warn"><Flag className="size-5" aria-hidden /></span> Anything to report?
         </h2>
         <Input value={reportText} onChange={(e) => setReportText(e.target.value)} placeholder="Something broken or noticed" className="h-12" />
         <input ref={reportFileRef} type="file" accept="image/*" aria-label="Photo to attach" className={FILE_INPUT} />

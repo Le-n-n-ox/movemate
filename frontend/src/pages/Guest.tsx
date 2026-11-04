@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Camera, ChevronDown, Home, ScrollText } from "lucide-react";
+import { Camera, ChevronDown, ChevronRight, Home, ScrollText } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAsync } from "@/hooks/useAsync";
 import type { GuestAnswer } from "@/lib/types";
@@ -85,12 +85,14 @@ export default function Guest() {
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-        <button type="button" onClick={() => document.getElementById("guest-camera")?.click()} className="rounded-2xl border bg-card p-5 text-left min-h-[120px] hover:bg-accent/40">
+        <button type="button" onClick={() => document.getElementById("guest-camera")?.click()} className="selection-card relative min-h-[120px] p-5">
+          <ChevronRight className="absolute right-4 top-4 size-5 text-muted-foreground" aria-hidden />
           <Camera className="size-6 mb-2 text-primary" aria-hidden />
           <p className="font-semibold">Ask about something</p>
           <p className="text-sm text-muted-foreground">Snap a photo of an appliance and we will show you how it works.</p>
         </button>
-        <button type="button" onClick={() => document.getElementById("guest-checkout")?.scrollIntoView({ behavior: "smooth" })} className="rounded-2xl border bg-card p-5 text-left min-h-[120px] hover:bg-accent/40">
+        <button type="button" onClick={() => document.getElementById("guest-checkout")?.scrollIntoView({ behavior: "smooth" })} className="selection-card relative min-h-[120px] p-5">
+          <ChevronRight className="absolute right-4 top-4 size-5 text-muted-foreground" aria-hidden />
           <ScrollText className="size-6 mb-2 text-primary" aria-hidden />
           <p className="font-semibold">Leaving? Record checkout</p>
           <p className="text-sm text-muted-foreground">Leave a quick record of how you left the place. About 2 minutes.</p>
@@ -98,7 +100,7 @@ export default function Guest() {
       </div>
 
       {g.house_rules && (
-        <section className="mb-6 rounded-xl border bg-card" aria-label="House rules">
+        <section className="panel mb-6 overflow-hidden" aria-label="House rules">
           <button type="button" onClick={toggleRules} className="w-full flex items-center justify-between p-4 text-left">
             <span className="flex items-center gap-2 font-semibold"><ScrollText className="size-5" aria-hidden /> Good to know</span>
             <ChevronDown className={`size-5 transition-transform ${rulesOpen ? "rotate-180" : ""}`} aria-hidden />
@@ -117,7 +119,7 @@ export default function Guest() {
         {error && <ErrorNote message={error} onRetry={() => last.current && ask(last.current)} />}
         {answer?.matched && answer.guide && <GuideCards guide={answer.guide} />}
         {answer && !(answer.matched && answer.guide) && (
-          <div className="space-y-3 rounded-xl border p-5 text-base" role="status">
+          <div className="panel space-y-3 p-5 text-base" role="status">
             <p className="text-2xl font-bold">We could not tell what that is.</p>
             <p className="text-base">{answer.message}</p>
             <p className="text-sm text-muted-foreground">Try a closer photo or another angle.</p>
@@ -143,7 +145,7 @@ export default function Guest() {
         </section>
       )}
 
-      <section id="guest-checkout" className="space-y-3 rounded-xl border p-5 mb-6" aria-label="Record your checkout">
+      <section id="guest-checkout" className="panel space-y-3 p-5 mb-6" aria-label="Record your checkout">
         <h2 className="text-xl font-bold">Leaving? Record how you left the place</h2>
         <p className="text-sm text-muted-foreground">Film or photograph the rooms, not people. You choose which rooms. About 2 minutes. The host and the cleaner for this property can see it.</p>
         <input ref={videoRef} type="file" accept="image/*,video/*" capture="environment" className="sr-only" />

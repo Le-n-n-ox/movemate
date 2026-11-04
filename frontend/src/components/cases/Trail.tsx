@@ -17,7 +17,7 @@ const LOOK: Record<Kind, { Icon: LucideIcon; tone: string }> = {
   note: { Icon: StickyNote, tone: "bg-accent text-accent-foreground" },
   search: { Icon: Search, tone: "bg-info/15 text-info" },
   evidence: { Icon: Camera, tone: "bg-accent text-accent-foreground" },
-  assigned: { Icon: UserCheck, tone: "bg-warn/20 text-amber-800 dark:text-amber-300" },
+  assigned: { Icon: UserCheck, tone: "bg-warn/20 text-warn" },
   status: { Icon: RefreshCw, tone: "bg-muted text-muted-foreground" },
   resolved: { Icon: CheckCircle2, tone: "bg-ok/15 text-ok" },
 };

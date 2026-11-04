@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { api } from "@/lib/api";
+import { api, mediaUrl } from "@/lib/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useRole } from "@/hooks/useRole";
 import { caseStatusLabel, caseStatusTone, caseTypeLabel, outcomeLabel } from "@/lib/labels";
@@ -35,7 +35,7 @@ export default function CaseDetail() {
               {c.assigned_to && <Pill>Assigned to {c.assigned_to}</Pill>}
             </div>
             <div className="flex gap-3 mt-3">
-              {c.reference_crop_url && <img src={c.reference_crop_url} alt={`Reference for ${c.item_label}`} className="size-24 shrink-0 rounded-lg object-cover" />}
+              {c.reference_crop_url && <img src={mediaUrl(c.reference_crop_url)} alt={`Reference for ${c.item_label}`} className="size-24 shrink-0 rounded-lg object-cover" />}
               <dl className="min-w-0 flex-1 space-y-1">
                 {c.room_name && (
                   <div className="text-sm"><dt className="text-muted-foreground">Room</dt><dd className="break-words text-foreground">{c.room_name}</dd></div>
@@ -50,7 +50,7 @@ export default function CaseDetail() {
                 <p className="font-semibold">AI hint (not a result)</p>
                 <p className="text-sm">{c.ai_suggestion.type.replace("_", " ")}{c.ai_suggestion.observed ? `: ${c.ai_suggestion.observed}` : ""}</p>
                 {c.ai_suggestion.evidence_frame_url && (
-                  <img src={c.ai_suggestion.evidence_frame_url} alt="Video frame for this hint" className="max-h-40 rounded-md" />
+                  <img src={mediaUrl(c.ai_suggestion.evidence_frame_url)} alt="Video frame for this hint" className="max-h-40 rounded-md" />
                 )}
               </div>
             )}

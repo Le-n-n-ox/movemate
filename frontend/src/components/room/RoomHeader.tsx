@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Camera, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, mediaUrl } from "@/lib/api";
 import type { RoomOut } from "@/lib/types";
 import { FilePicker } from "@/components/FilePicker";
 import { AnchorButton } from "@/components/LinkButton";
@@ -17,10 +17,12 @@ export function RoomHeader({ room, onChanged }: { room: RoomOut; onChanged: () =
         finally { setBusy(false); }
     }
 
+    const photo = mediaUrl(room.reference_photo_url);
+
     return (
         <Card className="gap-3 p-4">
-            {room.reference_photo_url ? (
-                <img src={room.reference_photo_url} alt={`${room.name} reference`} className="w-full rounded-lg" />
+            {photo ? (
+                <img src={photo} alt={`${room.name} reference`} className="w-full rounded-lg" />
             ) : (
                 <p className="rounded-lg bg-muted p-4 text-center text-sm text-muted-foreground">
                     No room photo yet. One wide photo helps your cleaner see how it should look.

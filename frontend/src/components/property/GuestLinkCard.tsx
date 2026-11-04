@@ -15,7 +15,7 @@ export function GuestLinkCard({ token }: { token: string }) {
                 <span className="icon-badge"><QrCode className="size-5" aria-hidden /></span> Guest link
             </h2>
             <p className="text-sm text-muted-foreground">Guests scan this to get help with an appliance. No login needed.</p>
-            <div className="pop relative mx-auto rounded-2xl bg-white p-6" style={{ boxShadow: "var(--shadow-lift)" }}>
+            <div className="qr-surface pop relative mx-auto rounded-2xl p-6" style={{ boxShadow: "var(--shadow-lift)" }}>
                 <span className={`${CORNER} left-2 top-2 rounded-tl-lg border-l-4 border-t-4`} aria-hidden />
                 <span className={`${CORNER} right-2 top-2 rounded-tr-lg border-r-4 border-t-4`} aria-hidden />
                 <span className={`${CORNER} bottom-2 left-2 rounded-bl-lg border-b-4 border-l-4`} aria-hidden />

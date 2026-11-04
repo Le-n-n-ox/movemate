@@ -72,12 +72,12 @@ function CleanerInner() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground">
       <div className="mx-auto w-full max-w-[480px] px-4 py-6">
         <h1 className="text-2xl font-bold tracking-tight">Today's checklist</h1>
         <p className="mt-1 text-muted-foreground">In-progress inspections across your properties.</p>
 
-        <form onSubmit={openLink} className="mt-4 space-y-2 rounded-2xl border bg-card p-4">
+        <form onSubmit={openLink} className="panel mt-4 space-y-2 p-4">
           <Label htmlFor="cleaner-link">Have a link from your host? Paste it here</Label>
           <div className="flex gap-2">
             <Input id="cleaner-link" className="h-12 flex-1" placeholder="https://.../properties/... or /inspection/..." value={link} onChange={(e) => setLink(e.target.value)} />
@@ -102,7 +102,7 @@ function CleanerInner() {
         )}
 
         {!loading && !error && rows.length === 0 && (
-          <div className="mt-6 rounded-2xl border bg-card p-6 text-center">
+          <div className="panel mt-6 p-6 text-center">
             <p className="text-muted-foreground">No inspections waiting. Open the link your host sent, or start one below.</p>
           </div>
         )}
@@ -110,18 +110,14 @@ function CleanerInner() {
         {!loading && !error && rows.length > 0 && (
           <ul className="mt-6 space-y-3">
             {rows.map((r) => (
-              <li key={r.inspection.id} className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-4">
+              <li key={r.inspection.id} className="panel flex items-center justify-between gap-3 p-4">
                 <div className="min-w-0">
                   <p className="break-words font-semibold">{r.propertyName}</p>
                   <p className="text-sm text-muted-foreground">{r.inspection.kind} · {r.inspection.reservation_ref || "no ref"}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => nav(`/inspection/${r.inspection.id}?role=${role}`)}
-                  className="shrink-0 rounded-xl bg-accent px-4 py-2 font-medium text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >
+                <Button type="button" className="shrink-0" onClick={() => nav(`/inspection/${r.inspection.id}?role=${role}`)}>
                   Continue
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

@@ -21,6 +21,22 @@ function resolveApiUrl(): string {
 }
 export const API_URL: string = resolveApiUrl();
 
+// The backend returns absolute media URLs built from PUBLIC_BASE_URL, which may
+// point at a different host than the one the browser used to reach the app
+// (e.g. a LAN IP while the page is open on localhost). Re-base /media paths onto
+// the API origin so photos always load wherever the app itself is reachable.
+export function mediaUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith("data:") || url.startsWith("blob:")) return url;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.pathname.startsWith("/media/")) {
+      return `${API_URL}${parsed.pathname}${parsed.search}`;
+    }
+  } catch { /* keep original */ }
+  return url;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {

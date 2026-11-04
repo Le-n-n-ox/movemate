@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
 import { ArrowRight, Brush, KeyRound, Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -77,18 +78,20 @@ export default function Start() {
   const continueLabel = last ? `Continue as ${last.charAt(0).toUpperCase() + last.slice(1)}` : null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground">
       <div className="mx-auto w-full max-w-[560px] px-4 py-6 sm:py-10">
-        <header className="mb-6 flex items-center gap-2">
-          <span className="grid size-9 place-items-center rounded-lg bg-accent text-accent-foreground font-bold">M</span>
-          <span className="text-lg font-semibold">MoveMate</span>
+        <header className="mb-6 flex items-center gap-2.5">
+          <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground transition-transform hover:scale-110">
+            <KeyRound className="size-5" />
+          </div>
+          <span className="text-lg font-semibold font-display tracking-tight">MoveMate</span>
         </header>
 
         {continueLabel && last && (
           <button
             type="button"
             onClick={() => choose(last)}
-            className="mb-4 flex min-h-12 w-full items-center justify-between rounded-xl border bg-card px-4 py-3 text-left shadow-sm transition hover:shadow-md active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="selection-card mb-4 flex min-h-12 w-full items-center justify-between px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span className="font-medium">{continueLabel}</span>
             <ArrowRight className="size-4 text-muted-foreground" aria-hidden />
@@ -99,13 +102,18 @@ export default function Start() {
         <p className="mt-1 text-muted-foreground">Choose how you'll use it today.</p>
 
         <div className="mt-6 space-y-3">
-          {CARDS.map(({ id, icon: Icon, title, line, color }) => (
-            <div key={id}>
+          {CARDS.map(({ id, icon: Icon, title, line, color }, i) => (
+            <motion.div
+              key={id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 * i }}
+            >
               <button
                 type="button"
                 onClick={() => choose(id)}
                 aria-expanded={id === "guest" ? expanded === "guest" : undefined}
-                className="grid min-h-[88px] w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-4 rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+                className="selection-card grid min-h-[88px] w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-4 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[auto_minmax(0,1fr)_auto]"
               >
                 <span className={`col-start-1 row-start-1 grid size-12 shrink-0 place-items-center rounded-xl ${color}`}>
                   <Icon className="size-6" aria-hidden />
@@ -118,7 +126,7 @@ export default function Start() {
               </button>
 
               {id === "guest" && expanded === "guest" && (
-                <form onSubmit={goGuest} className="mt-3 space-y-3 rounded-2xl border bg-card p-4">
+                <form onSubmit={goGuest} className="panel mt-3 space-y-3 p-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="stay-link">Enter your stay link or code</Label>
                     <Input
@@ -144,7 +152,7 @@ export default function Start() {
                   </div>
                 </form>
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
 

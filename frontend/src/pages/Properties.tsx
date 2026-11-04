@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { Building2, Plus } from "lucide-react";
+import { Building2, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, mediaUrl } from "@/lib/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useRole } from "@/hooks/useRole";
 import { Shell, ErrorNote, EmptyState } from "@/components/Shell";
@@ -63,7 +63,7 @@ export default function Properties() {
         </div>
         {role === "host" && (
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger><Button className="btn-tap"><Plus className="size-4" /> Add property</Button></DialogTrigger>
+            <DialogTrigger render={<Button className="btn-tap" />}><Plus className="size-4" /> Add property</DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Add a property</DialogTitle></DialogHeader>
               <form onSubmit={create} className="space-y-3">
@@ -101,10 +101,10 @@ export default function Properties() {
             const feature = i === 0 && (p.open_discrepancies > 0);
             return (
               <Link key={p.id} to={withRole(`/properties/${p.id}`)} className={`group block min-w-0 ${feature ? "md:col-span-2" : ""}`}>
-                <div className="flex min-h-56 min-w-0 flex-col rounded-2xl border bg-card transition-shadow hover:shadow-md">
+                <div className="selection-card flex min-h-56 min-w-0 flex-col overflow-hidden">
                   <div className={`relative shrink-0 overflow-hidden rounded-t-2xl bg-muted ${feature ? "h-40" : "h-28"}`}>
                     {p.cover_photo ? (
-                      <img src={p.cover_photo} alt={p.name} className="h-full w-full object-cover" />
+                      <img src={mediaUrl(p.cover_photo)} alt={p.name} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full items-center justify-center text-muted-foreground"><Building2 className="size-8" /></div>
                     )}
@@ -113,6 +113,9 @@ export default function Properties() {
                         {p.open_discrepancies} open cases
                       </span>
                     )}
+                    <span className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-card/90 text-muted-foreground shadow-sm">
+                      <ChevronRight className="size-4" aria-hidden />
+                    </span>
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
                     <div className="min-w-0">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { animate, useInView, useReducedMotion } from "motion/react";
+import { countTransition } from "@/lib/motion";
 
 export function AnimatedNumber({ value, className }: { value: number; className?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -9,7 +10,7 @@ export function AnimatedNumber({ value, className }: { value: number; className?
 
   useEffect(() => {
     if (!inView || reduce) return;
-    const c = animate(0, value, { duration: 1.2, ease: "easeOut", onUpdate: (v) => setN(Math.round(v)) });
+    const c = animate(0, value, { ...countTransition, onUpdate: (v) => setN(Math.round(v)) });
     return () => c.stop();
   }, [inView, value, reduce]);
 

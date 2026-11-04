@@ -60,7 +60,7 @@ export function RolePicker({ open, onClose }: { open: boolean; onClose: () => vo
       onClose={closed}
       onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
       aria-labelledby="role-title"
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border bg-card p-0 text-card-foreground shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm open:animate-in open:fade-in-0 open:zoom-in-95"
+      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border bg-card p-0 text-card-foreground shadow-2xl open:animate-in open:fade-in-0 open:zoom-in-95"
     >
       <div className="space-y-4 p-5">
         {step === "pick" ? (

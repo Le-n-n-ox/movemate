@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Check, Minus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, mediaUrl } from "@/lib/api";
 import type { ItemOut } from "@/lib/types";
 import { BBoxOverlay, BOX_COLORS } from "@/components/BBoxOverlay";
+import { Pill } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -32,6 +33,8 @@ export function ReviewQueue({ items, onChanged, onConfirmAll, onSelect }: {
   }
 
   if (!item) return null;
+  const source = mediaUrl(item.source_image_url);
+  const crop = mediaUrl(item.crop_url);
   const curLabel = label || item.label;
   const curQty = qty || item.quantity;
   const progress = items.length ? ((idx + 1) / items.length) * 100 : 0;
@@ -40,16 +43,19 @@ export function ReviewQueue({ items, onChanged, onConfirmAll, onSelect }: {
     return (
       <div className="space-y-2">
         <Button variant="outline" onClick={() => setListMode(false)}>Back to review</Button>
-        {items.map((it, i) => (
-          <button key={it.id} type="button" onClick={() => { setIdx(i); setListMode(false); onSelect?.(it.id); }}
-            className="flex w-full items-center gap-3 rounded-xl border bg-card p-2 text-left">
-            {it.crop_url && <img src={it.crop_url} alt={it.label} className="size-14 shrink-0 rounded-lg object-cover" />}
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white" style={{ backgroundColor: BOX_COLORS[i % BOX_COLORS.length] }}>{i + 1}</span>
-            <span className="min-w-0 flex-1 truncate font-medium">{it.label}</span>
-            <span className="text-sm text-muted-foreground">x{it.quantity}</span>
-            <span className={`size-2.5 shrink-0 rounded-full ${it.needs_check ? "bg-amber-500" : "bg-emerald-500"}`} aria-label={it.needs_check ? "Check this one" : "OK"} />
-          </button>
-        ))}
+        {items.map((it, i) => {
+          const thumb = mediaUrl(it.crop_url);
+          return (
+            <button key={it.id} type="button" onClick={() => { setIdx(i); setListMode(false); onSelect?.(it.id); }}
+              className="pressable flex w-full items-center gap-3 rounded-xl border bg-card p-2 text-left hover:bg-accent/40">
+              {thumb && <img src={thumb} alt={it.label} className="size-14 shrink-0 rounded-lg object-cover" />}
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white" style={{ backgroundColor: BOX_COLORS[i % BOX_COLORS.length] }}>{i + 1}</span>
+              <span className="min-w-0 flex-1 truncate font-medium">{it.label}</span>
+              <span className="text-sm text-muted-foreground">x{it.quantity}</span>
+              <span className={`status-dot ${it.needs_check ? "status-dot-warn" : "status-dot-ok"}`} aria-label={it.needs_check ? "Check this one" : "OK"} />
+            </button>
+          );
+        })}
       </div>
     );
   }
@@ -64,9 +70,9 @@ export function ReviewQueue({ items, onChanged, onConfirmAll, onSelect }: {
         </div>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted" aria-label="Progress"><div className="h-full bg-primary" style={{ width: `${progress}%` }} /></div>
-      {item.needs_check && <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Check this one</span>}
+      {item.needs_check && <Pill tone="warn">Check this one</Pill>}
       {item.frames_seen != null && item.frames_total != null && <p className="text-xs text-muted-foreground">Seen in {item.frames_seen} of {item.frames_total} frames</p>}
-      {item.source_image_url ? (
+      {source ? (
         <div onMouseDown={(e) => {
           if (!drawBox && !item.bbox) return;
           const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
@@ -79,7 +85,7 @@ export function ReviewQueue({ items, onChanged, onConfirmAll, onSelect }: {
           const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
           window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
         }}>
-          <BBoxOverlay src={item.source_image_url} alt={item.label}
+          <BBoxOverlay src={source} alt={item.label}
             boxes={[{ id: item.id, label: item.label, bbox: drawBox ?? item.bbox }]} selectedId={item.id} />
         </div>
       ) : (
@@ -88,8 +94,8 @@ export function ReviewQueue({ items, onChanged, onConfirmAll, onSelect }: {
           <Button variant="outline" onClick={() => toast("Draw a box on the scan photo, or use Scan box editor.")}>Draw box</Button>
         </div>
       )}
-      {item.crop_url && (
-        <a href={item.crop_url} target="_blank" rel="noreferrer"><img src={item.crop_url} alt={item.label} className="h-40 w-full rounded-xl object-cover" /></a>
+      {crop && (
+        <a href={crop} target="_blank" rel="noreferrer"><img src={crop} alt={item.label} className="h-40 w-full rounded-xl object-cover" /></a>
       )}
       <div className="space-y-1.5">
         <label htmlFor="review-name" className="text-sm font-medium">Name</label>

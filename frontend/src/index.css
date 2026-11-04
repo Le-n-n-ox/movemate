@@ -25,9 +25,15 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
   --color-warn: var(--warn);
+  --color-warn-foreground: var(--warn-foreground);
   --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-ok: var(--ok);
+  --color-ok-foreground: var(--ok-foreground);
+  --color-overlay: var(--overlay);
+  --color-qr-surface: var(--qr-surface);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -70,11 +76,21 @@
   --z-modal: 30;
   --z-toast: 40;
 
+  /* One timing scale for every transition and entrance. */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-slower: 480ms;
+  --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-emphasis: cubic-bezier(0.3, 1.4, 0.5, 1);
+
   --animate-float: float 6s ease-in-out infinite;
   --animate-float-slow: float 9s ease-in-out infinite;
   --animate-gradient: gradient 10s ease infinite;
   --animate-pulse-ring: pulse-ring 2.2s ease-out infinite;
-  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-rise: rise var(--duration-slower) var(--ease-standard) both;
+  --animate-pop: pop var(--duration-slower) var(--ease-emphasis) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }
@@ -97,45 +113,67 @@
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pop { 0% { opacity: 0; transform: scale(0.6); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes house-draw { to { stroke-dashoffset: 0; } }
+@keyframes house-light { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@keyframes house-smoke {
+  0% { opacity: 0; transform: translateY(6px) scale(0.6); }
+  20% { opacity: 0.5; }
+  100% { opacity: 0; transform: translateY(-58px) scale(1.5); }
+}
+@keyframes house-twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.9; } }
+@keyframes house-drift { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(18px); } }
+@keyframes house-reveal { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slow-zoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
+}
 
 :root {
   color-scheme: light;
   --radius: 0.875rem;
 
-  /* Cool seafoam page surface so white cards lift off the background. */
-  --background: #F3F9F7;
-  --foreground: #16242A;
+  /* Warm Paper surface so white cards lift off the background. */
+  --background: #F8F9F7;
+  --foreground: #2D3331;
   --card: #FFFFFF;
-  --card-foreground: #16242A;
+  --card-foreground: #2D3331;
   --popover: #FFFFFF;
-  --popover-foreground: #16242A;
+  --popover-foreground: #2D3331;
 
-  /* Deep teal so white button text clears contrast. */
-  --primary: #0F766E;
+  /* Deep Sage: The anchor of the brand. */
+  --primary: #3A5A40;
   --primary-foreground: #FFFFFF;
-  --secondary: #EAF3F1;
-  --secondary-foreground: #16242A;
-  --muted: #EAF3F1;
-  --muted-foreground: #4C5F5B;
-  --accent: #DCF0EC;
-  --accent-foreground: #0F4A45;
+  --secondary: #DAD7CD;
+  --secondary-foreground: #344E41;
+  --muted: #E8EBE6;
+  --muted-foreground: #6B7C75;
+  --accent: #A3B18A;
+  --accent-foreground: #344E41;
   --destructive: #B42318;
-  --border: #D7E5E1;
-  --input: #D7E5E1;
-  --ring: #0F766E;
+  --border: #DDE0DB;
+  --input: #DDE0DB;
+  --ring: #3A5A40;
 
-  /* Semantic feedback: red = missing, amber = count/unverified, blue = AI hint, green = ready. */
+  /* Semantic feedback: shifted to softer, professional tones. */
   --danger: #B42318;
-  --warn: #854D0E;
-  --info: #2F5FBF;
-  --ok: #216B4C;
+  --danger-foreground: #FFFFFF;
+  --warn: #B58E2D;
+  --warn-foreground: #FFFFFF;
+  --info: #5D7A8C;
+  --info-foreground: #FFFFFF;
+  --ok: #588157;
+  --ok-foreground: #FFFFFF;
+  /* Shared scrim for dialogs and native <dialog> backdrops. */
+  --overlay: oklch(0.3 0.02 160 / 0.5);
+  /* QR codes need a true white plate to scan reliably in both themes. */
+  --qr-surface: #FFFFFF;
 
-  --chart-1: oklch(0.54 0.115 188);
-  --chart-2: oklch(0.62 0.16 150);
-  --chart-3: oklch(0.75 0.16 75);
-  --chart-4: oklch(0.55 0.16 250);
-  --chart-5: oklch(0.54 0.09 235);
-  --chart-6: oklch(0.7 0.17 50);
+  --chart-1: oklch(0.45 0.1 150); /* Forest */
+  --chart-2: oklch(0.65 0.12 120); /* Olive */
+  --chart-3: oklch(0.8 0.1 80);   /* Sand */
+  --chart-4: oklch(0.5 0.05 210);  /* Slate */
+  --chart-5: oklch(0.4 0.08 170); /* Deep Teal */
+  --chart-6: oklch(0.7 0.1 40);    /* Terracotta */
 }
 
 .dark {
@@ -159,9 +197,14 @@
   --input: rgba(255, 255, 255, 0.13);
   --ring: #3BB5A6;
   --danger: #F87171;
+  --danger-foreground: #2A0705;
   --warn: #FBBF24;
+  --warn-foreground: #241A02;
   --info: #7AA8D8;
+  --info-foreground: #06131F;
   --ok: #5FB88A;
+  --ok-foreground: #04150D;
+  --overlay: oklch(0 0 0 / 0.68);
   --chart-1: oklch(0.74 0.12 186);
   --chart-2: oklch(0.75 0.16 150);
   --chart-3: oklch(0.82 0.15 80);
@@ -209,10 +252,21 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    /* One ambient wash shared by every page, tinted by the active accent. */
+    background-image:
+      radial-gradient(70rem 42rem at 110% -8%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 62%),
+      radial-gradient(56rem 38rem at -10% 2%, color-mix(in oklab, var(--info) 9%, transparent), transparent 58%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     line-height: 1.55;
     font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  }
+
+  dialog::backdrop {
+    background: var(--overlay);
+    backdrop-filter: blur(4px);
   }
 
   /* Display face carries the headings; body face carries the reading. */
@@ -225,6 +279,16 @@
   /* tap targets >= 48px for anything pressed */
   button, [role="button"], select, input[type="checkbox"] + label { min-height: 3rem; }
   button, [role="button"] { min-width: 3rem; }
+  /* Raw buttons get the same press motion as the Button component. */
+  button:not([data-slot="button"]):not(:disabled):not([aria-disabled="true"]) {
+    transition:
+      background-color var(--duration-base) var(--ease-standard),
+      border-color var(--duration-base) var(--ease-standard),
+      color var(--duration-base) var(--ease-standard),
+      box-shadow var(--duration-base) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
+  }
+  button:not([data-slot="button"]):not(:disabled):not([aria-disabled="true"]):active { transform: scale(0.98); }
   img { @apply max-w-full; }
   ::selection { background: color-mix(in oklab, var(--primary) 28%, transparent); }
   :focus-visible { @apply outline-2 outline-offset-2 outline-ring; }
@@ -248,7 +312,7 @@
     padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
     scroll-padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
   }
-  .page > * { animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  .page > * { animation: rise var(--duration-slower) var(--ease-standard) both; }
   .page > *:nth-child(2) { animation-delay: 40ms; }
   .page > *:nth-child(3) { animation-delay: 80ms; }
   .page > *:nth-child(n + 4) { animation-delay: 120ms; }
@@ -259,38 +323,50 @@
     padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
     scroll-padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
   }
-  .page-wide > * { animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  .page-wide > * { animation: rise var(--duration-slower) var(--ease-standard) both; }
 
   /* ---------- cards (shadcn Card renders data-slot="card") ---------- */
   [data-slot="card"] {
-    border-color: color-mix(in oklab, var(--border) 85%, var(--primary));
+    border: 1px solid color-mix(in oklab, var(--border) 85%, var(--primary));
     box-shadow: var(--shadow-rest);
-    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
-  }
-  a:has(> [data-slot="card"]):hover > [data-slot="card"] {
-    box-shadow: var(--shadow-lift);
-    border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+    transition:
+      box-shadow var(--duration-base) var(--ease-standard),
+      transform var(--duration-base) var(--ease-standard),
+      border-color var(--duration-base) var(--ease-standard);
   }
   a:has(> [data-slot="card"]):active > [data-slot="card"] { transform: scale(0.99); }
   .card-dim { @apply opacity-60; }
-  .card-lift { @apply transition-all duration-200 hover:-translate-y-0.5; }
-  .card-lift:hover { box-shadow: var(--shadow-lift); }
-  .inspection-card:hover { box-shadow: var(--shadow-lift); }
-  .inspection-card:active { transform: scale(0.99); }
+  .card-lift {
+    transition:
+      box-shadow var(--duration-base) var(--ease-standard),
+      transform var(--duration-base) var(--ease-standard),
+      border-color var(--duration-base) var(--ease-standard);
+  }
+  .card-lift:active, .inspection-card:active { transform: scale(0.99); }
 
-  /* ---------- buttons (shadcn Button renders data-slot="button") ---------- */
-  .btn-tap { @apply min-h-12 rounded-xl px-4 text-base font-semibold; }
-  [data-slot="button"] { transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease; }
-  [data-slot="button"]:active:not(:disabled) { transform: scale(0.95); }
-  [data-slot="button"][data-variant="default"]:not(:disabled) {
+  /* ---------- buttons ----------
+     Every button-like element (Button, LinkButton, FilePicker label, raw
+     [data-slot="button"]) shares the same radius, height, motion and hover. */
+  .btn-tap { @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-base font-semibold; }
+  [data-slot="button"] {
+    @apply rounded-xl;
+    transition:
+      background-color var(--duration-base) var(--ease-standard),
+      border-color var(--duration-base) var(--ease-standard),
+      color var(--duration-base) var(--ease-standard),
+      box-shadow var(--duration-base) var(--ease-standard),
+      filter var(--duration-base) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
+  }
+  [data-slot="button"]:active:not(:disabled):not([aria-disabled="true"]) { transform: scale(0.96); }
+  [data-slot="button"][data-variant="default"]:not(:disabled):not([aria-disabled="true"]) {
     box-shadow: 0 1px 0 color-mix(in oklab, white 25%, transparent) inset, 0 2px 6px -1px color-mix(in oklab, var(--primary) 35%, transparent);
   }
-  [data-slot="button"][data-variant="default"]:hover:not(:disabled) { box-shadow: var(--shadow-lift); }
-  [data-slot="button"] { @apply rounded-xl; }
+  [data-slot="button"]:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 40%, transparent); }
 
   /* ---------- inputs ---------- */
   .field {
-    @apply h-12 w-full rounded-md border border-input bg-card px-3 text-base;
+    @apply h-12 w-full rounded-xl border border-input bg-card px-3 text-base;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
   .field:focus, [data-slot="input"]:focus-visible, [data-slot="textarea"]:focus-visible {
@@ -298,7 +374,7 @@
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 20%, transparent);
     outline: none;
   }
-  [data-slot="input"], [data-slot="textarea"] { background-color: var(--card); }
+  [data-slot="input"], [data-slot="textarea"] { background-color: var(--card); border-radius: var(--radius-xl); }
   [data-slot="label"] { @apply text-sm font-semibold; }
 
   /* ---------- callouts ---------- */
@@ -334,22 +410,102 @@
   }
   .role-chip { @apply inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-sm; box-shadow: var(--shadow-rest); }
 
+  /* Uniform surfaces and interaction. Use .panel for standalone cards,
+     .selection-card for tappable choice rows, .liftable for hover lift. */
+  .panel {
+    @apply rounded-2xl border bg-card;
+    box-shadow: var(--shadow-rest);
+  }
+  .selection-card {
+    @apply rounded-2xl border bg-card text-left;
+    box-shadow: var(--shadow-rest);
+    transition:
+      transform var(--duration-base) var(--ease-standard),
+      box-shadow var(--duration-base) var(--ease-standard),
+      border-color var(--duration-base) var(--ease-standard),
+      background-color var(--duration-base) var(--ease-standard);
+  }
+  .selection-card:active { transform: scale(0.99); }
+  .selection-card:focus-visible, .row-link:focus-visible, .liftable:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .liftable {
+    transition:
+      transform var(--duration-base) var(--ease-standard),
+      box-shadow var(--duration-base) var(--ease-standard),
+      border-color var(--duration-base) var(--ease-standard);
+  }
+  .liftable:active { transform: scale(0.99); }
+  .pressable {
+    transition: background-color var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+  }
+  .pressable:active { transform: scale(0.98); }
+
+  /* Semantic status dots and chips: same geometry everywhere. */
+  .status-dot { @apply inline-block size-2.5 shrink-0 rounded-full; }
+  .status-dot-ok { background: var(--ok); }
+  .status-dot-warn { background: var(--warn); }
+  .status-dot-danger { background: var(--danger); }
+  .status-dot-info { background: var(--info); }
+  .chip-warn { @apply inline-flex items-center rounded-full bg-warn/15 px-2.5 py-1 text-xs font-semibold text-warn; }
+  .chip-ok { @apply inline-flex items-center rounded-full bg-ok/15 px-2.5 py-1 text-xs font-semibold text-ok; }
+
+  /* White plate behind QR codes so they scan in both themes. */
+  .qr-surface { background: var(--qr-surface); }
+
   /* tappable list row */
-  .row-link { @apply flex min-h-14 items-center gap-3 rounded-xl border bg-card p-3 transition-all duration-200; box-shadow: var(--shadow-rest); }
-  .row-link:hover { border-color: color-mix(in oklab, var(--primary) 45%, var(--border)); box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+  .row-link { @apply flex min-h-14 items-center gap-3 rounded-2xl border bg-card p-3; box-shadow: var(--shadow-rest); transition: border-color var(--duration-base) var(--ease-standard), box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard); }
   .row-link:active { transform: scale(0.99); }
-  .row-link .row-chevron { transition: transform 0.2s ease, color 0.2s ease; }
-  .row-link:hover .row-chevron { transform: translateX(3px); color: var(--primary); }
+  .row-link .row-chevron { transition: transform var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard); }
+
+  /* Hover motion only on devices with a real pointer, so taps don't stick. */
+  @media (hover: hover) and (pointer: fine) {
+    a:has(> [data-slot="card"]):hover > [data-slot="card"],
+    .card-lift:hover,
+    .inspection-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lift);
+      border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+    }
+    .selection-card:hover,
+    .liftable:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lift);
+      border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+    }
+    .row-link:hover {
+      transform: translateY(-2px);
+      border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+      box-shadow: var(--shadow-lift);
+    }
+    .row-link:hover .row-chevron { transform: translateX(3px); color: var(--primary); }
+    [data-slot="button"][data-variant="default"]:hover:not(:disabled):not([aria-disabled="true"]) {
+      filter: brightness(0.96);
+      box-shadow: var(--shadow-lift);
+    }
+    [data-slot="button"][data-variant="outline"]:hover:not(:disabled):not([aria-disabled="true"]) {
+      background-color: var(--accent);
+      border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+      color: var(--accent-foreground);
+      box-shadow: var(--shadow-rest);
+    }
+    .jump-bar button:hover { border-color: var(--primary); color: var(--primary); }
+  }
 
   /* thin progress bar */
   .meter { height: 0.375rem; border-radius: 999px; background: var(--muted); overflow: hidden; }
   .meter > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--ok)); transition: width 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
 
   /* status edge on a card */
-  .card-ok, .card-info { position: relative; }
-  .card-ok::before, .card-info::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; }
+  .card-ok, .card-info, .card-warn, .card-danger { position: relative; }
+  .card-ok::before, .card-info::before, .card-warn::before, .card-danger::before {
+    content: ""; position: absolute; inset: 0 0 auto; height: 3px;
+  }
   .card-ok::before { background: var(--ok); }
   .card-info::before { background: var(--info); }
+  .card-warn::before { background: var(--warn); }
+  .card-danger::before { background: var(--danger); }
 
   /* in-page navigation for long pages */
   .jump-bar {
@@ -362,14 +518,14 @@
   .jump-bar button {
     flex: none; display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.5rem; padding: 0 0.875rem;
     border-radius: 999px; border: 1px solid var(--border); background: var(--card);
-    font-size: 0.875rem; font-weight: 600; transition: border-color 0.15s ease, color 0.15s ease;
+    font-size: 0.875rem; font-weight: 600; transition: border-color var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard), background-color var(--duration-base) var(--ease-standard);
   }
-  .jump-bar button:hover, .jump-bar button:focus-visible { border-color: var(--primary); color: var(--primary); }
+  .jump-bar button:focus-visible { border-color: var(--primary); color: var(--primary); }
   .jump-target { scroll-margin-top: 7rem; }
 
   /* motion helpers */
-  .pop { animation: pop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
-  .stagger > * { animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  .pop { animation: pop var(--duration-slower) var(--ease-emphasis) both; }
+  .stagger > * { animation: rise var(--duration-slower) var(--ease-standard) both; }
   .stagger > *:nth-child(2) { animation-delay: 50ms; }
   .stagger > *:nth-child(3) { animation-delay: 100ms; }
   .stagger > *:nth-child(4) { animation-delay: 150ms; }
@@ -378,8 +534,65 @@
     background: linear-gradient(90deg, var(--muted) 25%, color-mix(in oklab, var(--muted) 55%, var(--card)) 50%, var(--muted) 75%);
     background-size: 200% 100%; animation: shimmer 1.6s linear infinite;
   }
+  [data-slot="skeleton"].animate-pulse { animation: shimmer 1.6s linear infinite; }
 
   /* ---------- landing ---------- */
+  /* Decorative bnb behind the hero: line-art house, lit windows, chimney smoke. */
+  .house-scene {
+    color: color-mix(in oklab, var(--primary) 40%, transparent);
+    opacity: 0.5;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 74%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 74%, transparent 100%);
+  }
+  .dark .house-scene { opacity: 0.55; }
+  .house-float {
+    animation:
+      float 16s ease-in-out infinite,
+      house-reveal 1.2s var(--ease-standard) both;
+  }
+  .house-draw path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: house-draw 2.6s var(--ease-standard) forwards;
+  }
+  .house-draw path:nth-child(2) { animation-delay: 0.12s; }
+  .house-draw path:nth-child(3) { animation-delay: 0.24s; }
+  .house-draw path:nth-child(4) { animation-delay: 0.36s; }
+  .house-draw path:nth-child(n + 5) { animation-delay: 0.5s; }
+  .house-fill path { fill: color-mix(in oklab, var(--primary) 5%, transparent); stroke: none; }
+  .house-window path {
+    fill: color-mix(in oklab, var(--chart-3) 45%, transparent);
+    stroke: none;
+    animation: house-light 6.5s ease-in-out infinite;
+  }
+  .house-window path:nth-child(2) { animation-delay: 1.2s; }
+  .house-window path:nth-child(3) { animation-delay: 2.4s; }
+  .house-sign rect { fill: var(--card); stroke: color-mix(in oklab, var(--primary) 55%, transparent); stroke-width: 2; }
+  .house-sign-text {
+    fill: color-mix(in oklab, var(--primary) 75%, transparent);
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
+  }
+  .house-smoke circle {
+    fill: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+    stroke: none;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: house-smoke 7.5s ease-out infinite;
+  }
+  .house-stars circle {
+    fill: color-mix(in oklab, var(--primary) 70%, transparent);
+    stroke: none;
+    animation: house-twinkle 4.5s ease-in-out infinite;
+  }
+  .house-cloud {
+    color: color-mix(in oklab, var(--info) 32%, transparent);
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: house-drift 24s ease-in-out infinite;
+  }
+  .house-cloud path { stroke: currentColor; stroke-width: 2; }
+  .house-cloud-slow { animation-duration: 32s; animation-direction: alternate-reverse; }
   .glass { @apply border-b border-border/60 bg-card/70 backdrop-blur-md; position: sticky; top: 0; z-index: var(--z-sticky); }
   .text-gradient {
     background-image: linear-gradient(120deg, var(--primary), var(--info), var(--primary));
@@ -415,7 +628,7 @@
 
 @media print {
   .no-print { display: none !important; }
-  body { background: white; }
+  body { background: white; background-image: none; }
   .page { max-width: 100%; padding: 0; }
   .page > * { animation: none; }
   [data-slot="card"] { box-shadow: none; }

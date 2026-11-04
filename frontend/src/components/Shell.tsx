@@ -46,7 +46,7 @@ export function ConnectionBanner() {
     return () => { window.removeEventListener("mm-offline", off); window.removeEventListener("mm-online", on); clearInterval(iv); };
   }, []);
   if (!offline) return null;
-  return <div className="sticky top-0 z-50 rounded-xl bg-danger px-3 py-2 text-sm font-medium text-white" role="alert">Can't reach the server. Retrying... {import.meta.env.DEV ? `API: ${import.meta.env.VITE_API_URL || "same-origin"}` : ""}</div>;
+  return <div className="sticky top-0 z-50 rounded-xl bg-danger px-3 py-2 text-sm font-medium text-danger-foreground" role="alert">Can't reach the server. Retrying... {import.meta.env.DEV ? `API: ${import.meta.env.VITE_API_URL || "same-origin"}` : ""}</div>;
 }
 
 export function ErrorNote({ message, onRetry, className }: { message: string; onRetry?: () => void; className?: string }) {
@@ -100,7 +100,7 @@ export function Pill({ tone = "neutral", children, className }: {
 
 export function RoleBar({ role, actor, onActor }: { role: Role; actor: string; onActor: (v: string) => void }) {
   return (
-    <div className="no-print grid min-w-0 grid-cols-1 items-center gap-2 rounded-lg bg-secondary p-2 sm:grid-cols-[auto_minmax(0,1fr)]">
+    <div className="no-print grid min-w-0 grid-cols-1 items-center gap-2 rounded-xl bg-secondary p-2 sm:grid-cols-[auto_minmax(0,1fr)]">
       <Pill tone={role === "host" ? "brand" : "neutral"}>Viewing as {role}</Pill>
       <Input
         aria-label="Your name"

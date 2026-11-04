@@ -6,6 +6,7 @@ import { Pill } from "@/components/Shell";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ItemDetails } from "./ItemDetails";
+import { ItemThumb } from "./ItemThumb";
 
 export function ConfirmedItem({ item, places, actor, onChanged }: {
   item: ItemOut; places: RoomOut[]; actor: string; onChanged: () => void;
@@ -14,9 +15,7 @@ export function ConfirmedItem({ item, places, actor, onChanged }: {
   return (
     <Card className="gap-0 p-3">
       <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="grid min-h-14 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 text-left sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-        {item.crop_url
-          ? <img src={item.crop_url} alt={item.label} className="col-start-1 row-start-1 size-12 shrink-0 rounded-md object-cover" />
-          : <div className="col-start-1 row-start-1 size-12 shrink-0 rounded-md bg-muted" aria-hidden />}
+        <ItemThumb item={item} className="col-start-1 row-start-1 size-12" />
         <div className="col-span-2 row-start-2 min-w-0 break-words sm:col-span-1 sm:col-start-2 sm:row-start-1">
           <p className="break-words font-medium" title={item.label}>{item.label} <span className="text-muted-foreground">×{item.quantity}</span></p>
           <p className="break-words text-xs text-muted-foreground">

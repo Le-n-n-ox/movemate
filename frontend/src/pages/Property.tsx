@@ -57,7 +57,7 @@ export default function Property() {
                 {d.address && <p className="mt-1 text-muted-foreground">{d.address}</p>}
               </header>
 
-              <section className="rounded-2xl border bg-card p-6">
+              <section className="panel p-6">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                   <div className="min-w-0">
                     <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Readiness</p>
@@ -132,7 +132,7 @@ export default function Property() {
             </div>
 
             <aside className="w-full min-w-0 space-y-4 self-start">
-              <div className="rounded-2xl border bg-card p-4">
+              <div className="panel p-4">
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Needs you</p>
                 {d.open_discrepancies > 0 ? (
                   <p className="mt-2 text-sm">
@@ -150,7 +150,7 @@ export default function Property() {
                   </Link>
                 )}
               </div>
-              <div className="rounded-2xl border bg-card p-4 space-y-2">
+              <div className="panel space-y-2 p-4">
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Quick actions</p>
                 <Button className="btn-tap w-full" onClick={startAudit} disabled={busy || d.rooms.length === 0}>
                   {busy ? "Starting…" : "Start AI video check"}
@@ -162,10 +162,10 @@ export default function Property() {
                   Guest link
                 </Button>
               </div>
-              <div className="rounded-2xl border bg-card p-4">
+              <div className="panel p-4">
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Guest QR</p>
                 <div className="flex justify-center">
-                  <div className="h-[120px] w-[120px] rounded-lg bg-white flex items-center justify-center">
+                  <div className="qr-surface h-[120px] w-[120px] rounded-lg flex items-center justify-center">
                     {d?.guest_token ? (
                       <QRCodeSVG value={`${window.location.origin}/g/${d.guest_token}`} size={120} />
                     ) : (
