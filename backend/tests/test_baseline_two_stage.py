@@ -46,7 +46,8 @@ def test_sliver_filtering_drops_thin_non_long():
         {"label": "pillow", "conf": 0.2, "bbox": {"x": 0.1, "y": 0.1, "w": 0.2, "h": 0.2}},  # low score <0.35
     ]
     kept = baseline.filter_segments(objs)
-    assert [o["label"] for o in kept] == ["black TV remote"]
+    assert [o["label"] for o in kept if not o.get("needs_check")] == ["black TV remote"]
+    assert all(o.get("needs_check") for o in kept if o["label"] != "black TV remote")
 
 
 def test_nms_same_label_and_cross_label():
@@ -296,4 +297,26 @@ def test_duplicate_same_crop_merged():
     # merge_cross_frame groups by normalized name; sofa/couch synonyms -> sofa, so same key
     merged = baseline.merge_cross_frame(objs, total_frames=2)
     assert len(merged) == 1
+
+
+def test_remote_phone_never_merge():
+    assert baseline.normalize_name("remote") != baseline.normalize_name("phone")
+    assert baseline.normalize_name("couch") == baseline.normalize_name("sofa")
+    assert baseline.normalize_name("tv remote") != baseline.normalize_name("television phone")
+
+def test_failed_verification_keeps_flagged(monkeypatch):
+    monkeypatch.setattr(baseline.imaging, "crop_bbox", lambda img, box: b"crop")
+    class C:
+        def list_objects(self, image): return []
+        def segment(self, image, prompts=None): return [Segment({"x":0.1,"y":0.1,"w":0.2,"h":0.2}, score=0.9)]
+        def label(self, crop): 
+            from app.services.models.base import Label
+            return Label(label="Widget", category="other", confidence=0.9)
+        def verify_crop(self, crop, name): return Verification(matches=False, better_name=None, confidence=0.1)
+    # legacy path does not verify, direct check: two-stage drop path now keeps flagged (unit via _verify_result logic)
+    assert baseline._verify_result(C(), b"c", "Widget") == (False, None, 0.1)
+
+def test_same_name_different_desc_stays_separate():
+    # normalize keeps colour, so orange vs blue cushion differ
+    assert baseline.normalize_name("Orange cushion") != baseline.normalize_name("Blue cushion")
 

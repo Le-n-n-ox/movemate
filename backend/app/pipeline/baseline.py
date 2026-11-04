@@ -12,6 +12,11 @@ from .matching import area, dedupe, iou, label_sim
 
 log = logging.getLogger(__name__)
 
+DECISIONS: list[str] = []
+def decision(name, stage, dec, reason):
+    line = f"{name} | {stage} | {dec} | {reason}"
+    DECISIONS.append(line); log.info("decision %s", line); print(f"decision {line}")
+
 def _log_stage(name, t0, extra=''):
     import time as _t
     log.info('stage %s %.1fs %s', name, _t.time()-t0, extra)
@@ -62,6 +67,11 @@ def _is_long_object(label: str) -> bool:
 _COLOUR_PATTERN = {"geometric","patterned","damask","decorative","dark","light","small","large","wooden","fabric","loveseat","throw","and","the","with","on","of"}
 _SYNONYMS = {"couch": "sofa", "sofa": "sofa", "tv": "television", "television": "television", "remote": "remote", "control": "remote"}
 
+_TRUE_SYNONYMS = {frozenset(("sofa","couch")), frozenset(("tv","television")), frozenset(("remote","control"))}
+def _same_normalized(a_norm, b_norm):
+    if a_norm == b_norm: return True
+    return False
+
 def short_name(name: str) -> str:
     words = [w for w in str(name).replace("-", " ").split() if w]
     return " ".join(words[:4]) if words else "Item"
@@ -103,6 +113,7 @@ def _call_segment(client, img: bytes, prompts=None):
 
 
 def nms(objs: list[dict], iou_same: float = 0.5, iou_cross: float = 0.7) -> list[dict]:
+    # NOTE: NMS is per-frame same-shot duplicates; cross-frame dedup is separate and conservative
     kept: list[dict] = []
     for o in sorted(objs, key=lambda x: x.get("conf", x.get("score", 0)), reverse=True):
         if not o.get("bbox"):
@@ -129,17 +140,18 @@ def filter_segments(objs: list[dict]) -> list[dict]:
     out = []
     for o in objs:
         if not o.get("bbox"):
+            out.append(o); continue
+        score = o.get("conf", o.get("score", 0)); a = area(o["bbox"])
+        reason = None
+        if score < settings.segment_min_score: reason = f"score {score:.2f} < {settings.segment_min_score}"
+        elif a < settings.segment_min_area or a > settings.segment_max_area: reason = f"area {a:.4f} outside [{settings.segment_min_area},{settings.segment_max_area}]"
+        elif _aspect(o["bbox"]) > settings.segment_max_aspect and not _is_long_object(o.get("label", "")): reason = f"aspect {_aspect(o['bbox']):.1f} > {settings.segment_max_aspect}"
+        if reason:
+            decision(o.get("label","?"), "filter", "flagged", reason)
+            o2 = dict(o); o2["needs_check"] = True; o2["flag_reason"] = reason; out.append(o2)
+        else:
+            decision(o.get("label","?"), "filter", "kept", f"score {score:.2f} area {a:.4f}")
             out.append(o)
-            continue
-        score = o.get("conf", o.get("score", 0))
-        a = area(o["bbox"])
-        if score < settings.segment_min_score:
-            continue
-        if a < settings.segment_min_area or a > settings.segment_max_area:
-            continue
-        if _aspect(o["bbox"]) > settings.segment_max_aspect and not _is_long_object(o.get("label", "")):
-            continue
-        out.append(o)
     return out
 
 
@@ -344,11 +356,9 @@ def detect_items(client, img: bytes, frame_no: int = 0, close_up: bool = False, 
                 verify_calls += 1
                 if not matches:
                     if better:
-                        label = short_name(better)
-                        needs_check = True
+                        label = short_name(better); needs_check = True; decision(label, 'verify', 'renamed', f'better_name={better}')
                     else:
-                        dropped_verify += 1
-                        continue
+                        needs_check = True; decision(label, 'verify', 'flagged', 'verification no, no better name')
                 elif vconf < 0.5:
                     needs_check = True
             except Exception:
@@ -546,18 +556,32 @@ def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4", capture
         key = normalize_name(m.name) + "|" + str(getattr(m, "description", "") or "")[:20]
         # simpler: normalized name alone for grouping, description similarity checked via key above will keep colour variants separate - use normalized name only
         key = normalize_name(m.name)
-        if key not in merged_master:
-            merged_master[key] = m; order.append(key)
-        else:
-            try: merged_master[key].count = int(getattr(merged_master[key], 'count', 1) or 1) + int(getattr(m, 'count', 1) or 1)
-            except Exception: pass
+        desc = (getattr(m, "description", "") or "").casefold()
+        merged = False
+        for k in list(merged_master.keys()):
+            if k == key:
+                existing = merged_master[k]
+                edesc = (getattr(existing, "description", "") or "").casefold()
+                # strict: same normalized name AND descriptions agree (share >=1 content word or one empty)
+                aw = set(x for x in desc.split() if len(x) > 3); bw = set(x for x in edesc.split() if len(x) > 3)
+                if not aw or not bw or aw & bw:
+                    try: merged_master[k].count = int(getattr(merged_master[k], 'count', 1) or 1) + int(getattr(m, 'count', 1) or 1)
+                    except Exception: pass
+                    decision(m.name, "inventory-merge", f"merged into {existing.name}", "same normalized name, descriptions agree")
+                    merged = True; break
+                else:
+                    decision(m.name, "inventory-merge", "kept", "same name but descriptions differ")
+        if not merged:
+            # key with description suffix to keep separate entries distinct
+            uniq = key + "|" + desc[:20]
+            merged_master[uniq] = m; order.append(uniq)
     def _locate_item(idx, key, merged_master, kept, picks, client):
         m = merged_master[key]
         name = short_name(getattr(m, "name", str(m)))
         listed_frames = list(getattr(m, "frames", []) or [])
-        listed_frames_sorted = sorted(listed_frames, key=lambda fi: _sharpness(kept[fi]) if 0 <= fi < len(kept) else 0, reverse=True)
-        if not listed_frames_sorted:
-            listed_frames_sorted = list(range(len(kept)))
+        # try listed frames first, then every other frame, then description prompt at lower threshold
+        remaining = [i for i in range(len(kept)) if i not in listed_frames]
+        listed_frames_sorted = sorted(listed_frames, key=lambda fi: _sharpness(kept[fi]) if 0 <= fi < len(kept) else 0, reverse=True) + remaining
         found = []
         for fi in listed_frames_sorted:
             if fi < 0 or fi >= len(kept): continue
@@ -612,9 +636,9 @@ def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4", capture
         except Exception: pass
         listed_frames = list(getattr(m, "frames", []) or [])
         # prefer sharpest/largest: sort listed frames by sharpness desc
-        listed_frames_sorted = sorted(listed_frames, key=lambda fi: _sharpness(kept[fi]) if 0 <= fi < len(kept) else 0, reverse=True)
-        if not listed_frames_sorted:
-            listed_frames_sorted = list(range(len(kept)))
+        # try listed frames first, then every other frame, then description prompt at lower threshold
+        remaining = [i for i in range(len(kept)) if i not in listed_frames]
+        listed_frames_sorted = sorted(listed_frames, key=lambda fi: _sharpness(kept[fi]) if 0 <= fi < len(kept) else 0, reverse=True) + remaining
         found = []
         for fi in listed_frames_sorted:
             if fi < 0 or fi >= len(kept): continue
@@ -652,8 +676,8 @@ def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4", capture
         o["crop"] = crop
         try:
             matches, better, vconf = _verify_result(client, crop, o["label"])
-            if not matches and not better: continue
-            if better: o["label"] = short_name(better); o["needs_check"] = True
+            if not matches and not better: o["needs_check"] = True; decision(o["label"], 'verify', 'flagged', 'verification no')
+            elif better: o["label"] = short_name(better); o["needs_check"] = True
             elif vconf < 0.5: o["needs_check"] = True
         except Exception: pass
         verified.append(o)
@@ -664,26 +688,30 @@ def process_video(db: Session, room: Room, raw: bytes, ext: str = "mp4", capture
         merged_flag = False
         for d in deduped:
             if not d.get("bbox"): continue
-            if normalize_name(d["label"]) != normalize_name(o["label"]): 
-                # different name, check phash similarity then ask model
-                try:
-                    if _hamming(_phash(d["crop"]), _phash(o["crop"])) <= 10 and hasattr(client, "same_object") and client.same_object(d["crop"], o["crop"]):
-                        merged_flag = True; break
-                except Exception: pass
-            else:
-                # same normalized name, non-overlapping already handled by quantity; if boxes overlap heavily it's same object -> quantity 1 not 2
-                if iou(d["bbox"], o["bbox"]) > 0.5:
-                    merged_flag = True; break
-                try:
-                    if _hamming(_phash(d["crop"]), _phash(o["crop"])) <= 10 and hasattr(client, "same_object") and client.same_object(d["crop"], o["crop"]):
-                        merged_flag = True; break
-                except Exception: pass
+            # conservative: hash is only a cheap pre-filter, never merges alone
+            try:
+                if _hamming(_phash(d["crop"]), _phash(o["crop"])) <= 6 and hasattr(client, "same_object") and client.same_object(d["crop"], o["crop"]):
+                    merged_flag = True; decision(o["label"], "appearance-merge", f"merged into {d['label']}", "phash<=6 and same_object=yes"); break
+                elif _hamming(_phash(d["crop"]), _phash(o["crop"])) <= 10:
+                    o["needs_check"] = True; o["possible_dup"] = d["label"]; decision(o["label"], "appearance-merge", "flagged", "possible duplicate, model unsure")
+            except Exception: pass
         if not merged_flag:
             deduped.append(o)
     _t_seg = __import__('time').time()
     # cap 25 most confident
-    deduped = sorted(deduped, key=lambda x: x.get("conf", 0), reverse=True)[:25]
-    if len(verified) > 25: log.warning("baseline video: capped at 25, %d not listed", len(verified)-25)
+    deduped = sorted(deduped, key=lambda x: x.get("conf", 0), reverse=True)[:40]
+    if len(verified) > 40: log.warning("baseline video: capped at 40, %d not listed", len(verified)-40); decision('ALL', 'cap', 'flagged', f'{len(verified)-40} hidden by cap 40')
     log.info('video scan %.1fs total | ffmpeg %.1fs | frame filter %.1fs | inventory %.1fs | segmentation/verify in locating | merge in dedup', __import__('time').time()-_T0, _t_filter-_T0 if False else 0, 0, 0)
+    # TWO-PASS SAFETY NET: one extra call, add missing as needs_check
+    try:
+        current_names = [o["label"] for o in deduped]
+        if hasattr(client, "list_objects_video"):
+            extra = client.list_objects_video(kept, context=room.name + " section. Current list: " + ", ".join(current_names) + ". Which distinct movable objects are NOT in this list?")
+            for m in extra:
+                if normalize_name(m.name) not in {normalize_name(x) for x in current_names}:
+                    decision(m.name, "two-pass", "kept", "added by safety net")
+                    deduped.append({"label": short_name(m.name), "category": getattr(m, "category", None), "conf": 0.5, "bbox": None, "frame": picks[0], "crop": kept[0], "image": kept[0], "notes": None, "quantity": 1, "needs_check": True, "flag_reason": "not in list", "detection_confidence": 0.5, "frames_seen": 0, "frames_total": len(kept), "description": getattr(m, "description", "")})
+    except Exception as e:
+        decision("ALL", "two-pass", "flagged", f"error {e}")
     print(f'video scan {__import__("time").time()-_T0:.1f}s total | frames extracted={len(frame_bytes)} kept={len(picks)} model_calls~{len(order)+len(deduped)}')
     return capture, _to_items(db, room, capture, deduped, lambda o: frame_rels[o["frame"]], "normal")

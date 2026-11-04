@@ -109,12 +109,22 @@ export default function Room() {
                   <span className="icon-badge bg-info/15 text-info"><Sparkles className="size-5" aria-hidden /></span>
                   Items we found
                   <span className="rounded-full bg-info/15 px-2 py-0.5 text-sm font-semibold text-info">{suggested.length}</span>
+                  <span className="text-sm text-muted-foreground">{suggested.length} items found, {suggested.filter((i) => i.needs_check).length} need a quick check</span>
                 </h2>
                 <Button variant="outline" className="btn-tap" onClick={confirmAll}><CheckCheck className="size-5" /> Confirm all</Button>
                 <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={!!groupPhoto} onChange={(e) => setGroupPhoto(e.target.checked)} /> Group by photo</label>
               </div>
               <div className="stagger space-y-4">
                 <ReviewQueue items={suggested} onChanged={refresh} onConfirmAll={confirmAll} onSelect={setSelectedId} />
+                {suggested.some((i) => (i as any).possible_dup) && (
+                  <div className="space-y-2 rounded-xl border p-3">
+                    <p className="font-medium">Possible duplicates</p>
+                    {suggested.filter((i) => (i as any).possible_dup).map((i) => (
+                      <div key={i.id} className="flex items-center justify-between gap-2 text-sm"><span>{i.label} ~ {(i as any).possible_dup}</span></div>
+                    ))}
+                    <p className="text-xs text-muted-foreground">Use Merge with in review mode, or Keep both.</p>
+                  </div>
+                )}
                 <details className="rounded-xl border p-3">
                   <summary className="cursor-pointer font-medium">Compact list (old cards)</summary>
                   <div className="mt-3 space-y-4">

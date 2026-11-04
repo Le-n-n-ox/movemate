@@ -467,7 +467,7 @@ class MetaClient:
             ctx = context or "one area"
             prompt = (
                 f"Context: {ctx}. These {len(frames)} frames are from ONE continuous video of ONE area, from different angles. "
-                "List every distinct physical object ONCE. If an object appears in several frames, list it once. "
+                "List every distinct physical object ONCE, including small ones (remotes, books, phones, keys, cups, cables, decor). Do not skip small or partly visible items. When unsure whether two things are the same, list them separately. If an object appears in several frames, list it once. "
                 "Give a short canonical name (at most 4 words), the count of identical items, a short visual description (color, material, size), and the frame numbers (0-based, as sent) where it is clearly visible. "
                 "Do not list walls, floors, ceilings, windows, or fixtures that cannot be moved. Return strict JSON only."
             )

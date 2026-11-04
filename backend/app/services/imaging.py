@@ -38,8 +38,8 @@ def crop_bbox(data: bytes, bbox: dict, pad: float = 0.12) -> bytes:
     crop = img.crop(box)
     cw, chh = crop.size
     shorter = min(cw, chh)
-    if shorter and shorter < 256:
-        scale = 256 / shorter
+    if shorter and shorter < 224:
+        scale = 224 / shorter
         crop = crop.resize((max(1, int(cw * scale)), max(1, int(chh * scale))))
     buf = io.BytesIO()
     crop.save(buf, "JPEG", quality=88)
